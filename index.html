@@ -1115,6 +1115,7 @@ async function googleSearch(filter) {
   const headers = {
     'Content-Type': 'application/json',
     'X-Goog-Api-Key': key,
+    'X-Ios-Bundle-Identifier': 'com.salgi.spotfinder',
   };
 
   if (hasQuery) {
@@ -1250,7 +1251,7 @@ async function googlePlaceDetails(placeId) {
   if (!key) return null;
   const id = placeId.startsWith('google:') ? placeId.slice(7) : placeId;
   const baseUrl = 'https://places.googleapis.com/v1/places/' + encodeURIComponent(id);
-  const headers = { 'X-Goog-Api-Key': key };
+  const headers = { 'X-Goog-Api-Key': key, 'X-Ios-Bundle-Identifier': 'com.salgi.spotfinder' };
 
   const [koRes, localRes] = await Promise.all([
     fetchWithTimeout(baseUrl + '?languageCode=ko', {
@@ -1316,7 +1317,7 @@ async function googleNearbyStations(lat, lng, radius) {
       'https://places.googleapis.com/v1/places:searchNearby',
       {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-Goog-Api-Key': key, 'X-Goog-FieldMask': 'places.id,places.displayName,places.location' },
+        headers: { 'Content-Type': 'application/json', 'X-Goog-Api-Key': key, 'X-Ios-Bundle-Identifier': 'com.salgi.spotfinder', 'X-Goog-FieldMask': 'places.id,places.displayName,places.location' },
         body: JSON.stringify({
           maxResultCount: 20,
           locationRestriction: { circle: { center: { latitude: lat, longitude: lng }, radius: Math.max(500, Math.min(radius || 2000, 5000)) } },
