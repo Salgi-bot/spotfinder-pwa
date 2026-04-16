@@ -949,6 +949,7 @@ const state = {
   detailPlace: null,
   detailData: null,
   detailLoading: false,
+  searched: false,
   // favorites route mode
   routeMode: false,
   routeSelected: new Set(),
@@ -1125,16 +1126,22 @@ async function googleSearch(filter) {
     const textBody = {
       textQuery,
       languageCode: 'ko',
-      regionCode: 'KR',
       maxResultCount: 20,
     };
     if (filter.coord) {
-      textBody.locationRestriction = {
-        rectangle: circleToBounds(filter.coord.lat, filter.coord.lng, filter.radius),
+      textBody.locationBias = {
+        circle: {
+          center: { latitude: filter.coord.lat, longitude: filter.coord.lng },
+          radius: filter.radius,
+        },
       };
     }
     if (filter.filters.includes('openNow')) {
       textBody.openNow = true;
+    }
+    if (filter.category !== 'all') {
+      const types = CATEGORY_TYPES[filter.category];
+      if (types) textBody.includedType = types[0];
     }
 
     const textUrl = 'https://places.googleapis.com/v1/places:searchText';
@@ -1406,6 +1413,7 @@ async function searchPlaces() {
   state.loading = true;
   state.error = null;
   state.places = [];
+  state.searched = true;
   render();
 
   try {
@@ -1424,7 +1432,10 @@ async function searchPlaces() {
     // Distance calculation
     if (state.coord) {
       places = places.map(p => ({ ...p, distance: haversine(state.coord.lat, state.coord.lng, p.lat, p.lng) }));
-      places = places.filter(p => (p.distance ?? Infinity) <= state.radius * 1.1);
+      // 텍스트 검색(동네명)은 거리 필터 미적용 — 동네 자체가 현재 GPS와 멀 수 있음
+      if (!state.query.trim()) {
+        places = places.filter(p => (p.distance ?? Infinity) <= state.radius * 1.1);
+      }
     }
 
     // Noise filter
@@ -1876,13 +1887,23 @@ function renderSearchScreen() {
     resultsHtml = `<div class="results-status">${state.places.length}개 장소</div>` +
       state.places.map(p => renderPlaceCard(p)).join('');
   } else if (state.places.length === 0 && !state.loading && !state.error) {
-    resultsHtml = `
-      <div class="empty-state">
-        <div class="empty-icon">\uD83D\uDD0D</div>
-        <div class="empty-text">주변 장소를 검색해보세요</div>
-        <div class="empty-sub">GPS를 켜거나 동네명을 입력하세요</div>
-      </div>
-    `;
+    if (state.searched) {
+      resultsHtml = `
+        <div class="empty-state">
+          <div class="empty-icon">\uD83D\uDE45</div>
+          <div class="empty-text">검색 결과가 없습니다</div>
+          <div class="empty-sub">다른 키워드나 카테고리로 다시 검색해보세요</div>
+        </div>
+      `;
+    } else {
+      resultsHtml = `
+        <div class="empty-state">
+          <div class="empty-icon">\uD83D\uDD0D</div>
+          <div class="empty-text">주변 장소를 검색해보세요</div>
+          <div class="empty-sub">GPS를 켜거나 동네명을 입력하세요</div>
+        </div>
+      `;
+    }
   }
 
   return html`
@@ -2082,8 +2103,14 @@ function switchTab(tab) {
 }
 
 function setCategory(cat) {
+  if (state.category === cat) return;
   state.category = cat;
-  render();
+  // 이전 검색 결과가 있거나 좌표가 있으면 자동 재검색
+  if (state.places.length > 0 || state.coord || state.query.trim()) {
+    searchPlaces();
+  } else {
+    render();
+  }
 }
 
 async function doSearch() {
