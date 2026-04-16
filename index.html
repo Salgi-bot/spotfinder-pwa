@@ -820,20 +820,20 @@ body {
 // ================================================================
 
 const CATEGORIES = [
-  { key: 'all', label: '전체', icon: '' },
-  { key: 'food', label: '식당', icon: '' },
-  { key: 'cafe', label: '카페', icon: '' },
-  { key: 'attraction', label: '관광', icon: '' },
-  { key: 'museum', label: '박물관', icon: '' },
-  { key: 'park', label: '공원', icon: '' },
-  { key: 'shopping', label: '쇼핑', icon: '' },
-  { key: 'conv', label: '편의점', icon: '' },
-  { key: 'lodging', label: '숙소', icon: '' },
-  { key: 'transit', label: '교통', icon: '' },
-  { key: 'money', label: '환전', icon: '' },
-  { key: 'health', label: '약국', icon: '' },
-  { key: 'wellness', label: '마사지', icon: '' },
-  { key: 'family', label: '가족', icon: '' },
+  { key: 'all', label: '전체', icon: '\uD83D\uDDFA\uFE0F' },
+  { key: 'food', label: '식당', icon: '\uD83C\uDF7D\uFE0F' },
+  { key: 'cafe', label: '카페', icon: '\u2615' },
+  { key: 'attraction', label: '관광', icon: '\uD83D\uDCF8' },
+  { key: 'museum', label: '박물관', icon: '\uD83C\uDFDB\uFE0F' },
+  { key: 'park', label: '공원', icon: '\uD83C\uDF33' },
+  { key: 'shopping', label: '쇼핑', icon: '\uD83D\uDECD\uFE0F' },
+  { key: 'conv', label: '편의점', icon: '\uD83C\uDFEA' },
+  { key: 'lodging', label: '숙소', icon: '\uD83C\uDFE8' },
+  { key: 'transit', label: '교통', icon: '\uD83D\uDE87' },
+  { key: 'money', label: '환전', icon: '\uD83D\uDCB1' },
+  { key: 'health', label: '약국', icon: '\uD83D\uDC8A' },
+  { key: 'wellness', label: '마사지', icon: '\uD83D\uDC86' },
+  { key: 'family', label: '가족', icon: '\uD83D\uDC68\u200D\uD83D\uDC69\u200D\uD83D\uDC66' },
 ];
 
 const FILTER_OPTIONS = [
@@ -911,6 +911,7 @@ const CATEGORY_KO = {
 
 const NIGHT_MARKET_RE = /夜市|食市|屋台|縁日|ナイトマーケット|chợ đêm|ตลาดกลางคืน|ตลาดนัด|pasar malam|hawker|야시장|night ?market|night ?bazaar/i;
 const LATE_NIGHT_RE = /bar|night_club|nightclub|24h|24시|심야|深夜|late|居酒屋|izakaya/i;
+const EXCHANGE_RE = /currency|exchange|換|両替|换|cambio|환전|외환/i;
 
 const FIELD_MASK = [
   'places.id','places.displayName','places.formattedAddress','places.shortFormattedAddress',
@@ -949,6 +950,7 @@ const state = {
   detailPlace: null,
   detailData: null,
   detailLoading: false,
+  detailReviewFilter: 'all',
   searched: false,
   // favorites route mode
   routeMode: false,
@@ -978,6 +980,13 @@ function calcTrustScore(place) {
   const reviewNorm = Math.min(100, Math.log10(Math.max(1, place.reviewCount) + 1) * 33.3);
   const reviewPart = reviewNorm * 0.4;
   return Math.round(ratingPart + reviewPart);
+}
+
+function calcTrustScoreDetail(place) {
+  const ratingPart = (place.rating / 5) * 100 * 0.6;
+  const reviewNorm = Math.min(100, Math.log10(Math.max(1, place.reviewCount) + 1) * 33.3);
+  const reviewPart = reviewNorm * 0.4;
+  return { score: Math.round(ratingPart + reviewPart), ratingPart: Math.round(ratingPart), reviewPart: Math.round(reviewPart) };
 }
 
 function formatDistance(m) {
@@ -1084,10 +1093,17 @@ async function fetchWithTimeout(url, options, timeoutMs) {
   }
 }
 
+function mapPriceRange(raw) {
+  if (!raw) return undefined;
+  if (!raw.startPrice && !raw.endPrice) return undefined;
+  return raw;
+}
+
 function mapNewPlace(p) {
   const lat = p.location?.latitude ?? 0;
   const lng = p.location?.longitude ?? 0;
-  const photoNames = (p.photos || []).slice(0, 10).map(ph => ph.name);
+  const inKorea = lat >= 33 && lat <= 39 && lng >= 124 && lng <= 132;
+  const photoNames = (p.photos || []).slice(0, 30).map(ph => ph.name);
   return {
     id: 'google:' + p.id,
     name: p.displayName?.text || '이름 없음',
@@ -1102,9 +1118,11 @@ function mapNewPlace(p) {
     photoUrl: photoNames[0],
     photoUrls: photoNames,
     priceLevel: mapPriceLevel(p.priceLevel),
-    priceRange: p.priceRange,
+    priceRange: mapPriceRange(p.priceRange),
     paymentInfo: mapPaymentInfo(p.paymentOptions),
     types: [...(p.primaryType ? [p.primaryType] : []), ...(p.types || [])],
+    region: inKorea ? 'KR' : 'OVERSEAS',
+    rawSource: p,
   };
 }
 
@@ -1126,26 +1144,20 @@ async function googleSearch(filter) {
     const textBody = {
       textQuery,
       languageCode: 'ko',
+      regionCode: 'KR',
       maxResultCount: 20,
     };
     if (filter.coord) {
-      textBody.locationBias = {
-        circle: {
-          center: { latitude: filter.coord.lat, longitude: filter.coord.lng },
-          radius: filter.radius,
-        },
+      textBody.locationRestriction = {
+        rectangle: circleToBounds(filter.coord.lat, filter.coord.lng, filter.radius),
       };
     }
     if (filter.filters.includes('openNow')) {
       textBody.openNow = true;
     }
-    if (filter.category !== 'all') {
-      const types = CATEGORY_TYPES[filter.category];
-      if (types) textBody.includedType = types[0];
-    }
 
     const textUrl = 'https://places.googleapis.com/v1/places:searchText';
-    const textHeaders = { ...headers, 'X-Goog-FieldMask': FIELD_MASK + ',nextPageToken' };
+    const textHeaders = { ...headers, 'X-Goog-FieldMask': FIELD_MASK + ',nextPageToken', 'X-Ios-Bundle-Identifier': 'com.salgi.spotfinder' };
 
     const firstRes = await fetchWithTimeout(textUrl, {
       method: 'POST', headers: textHeaders, body: JSON.stringify(textBody),
@@ -1203,7 +1215,7 @@ async function googleSearch(filter) {
             'https://places.googleapis.com/v1/places:searchNearby',
             {
               method: 'POST',
-              headers: { ...headers, 'X-Goog-FieldMask': FIELD_MASK },
+              headers: { ...headers, 'X-Goog-FieldMask': FIELD_MASK, 'X-Ios-Bundle-Identifier': 'com.salgi.spotfinder' },
               body: JSON.stringify(batchBody),
             }
           ).then(r => r.json()).catch(() => ({ places: [] }));
@@ -1238,7 +1250,7 @@ async function googleSearch(filter) {
     }
     const res = await fetchWithTimeout(
       'https://places.googleapis.com/v1/places:searchNearby',
-      { method: 'POST', headers: { ...headers, 'X-Goog-FieldMask': FIELD_MASK }, body: JSON.stringify(body) }
+      { method: 'POST', headers: { ...headers, 'X-Goog-FieldMask': FIELD_MASK, 'X-Ios-Bundle-Identifier': 'com.salgi.spotfinder' }, body: JSON.stringify(body) }
     );
     const data = await res.json();
     if (!res.ok || data.error) {
@@ -1257,7 +1269,7 @@ async function googlePlaceDetails(placeId) {
   if (!key) return null;
   const id = placeId.startsWith('google:') ? placeId.slice(7) : placeId;
   const baseUrl = 'https://places.googleapis.com/v1/places/' + encodeURIComponent(id);
-  const headers = { 'X-Goog-Api-Key': key };
+  const headers = { 'X-Goog-Api-Key': key, 'X-Ios-Bundle-Identifier': 'com.salgi.spotfinder' };
 
   const [koRes, localRes] = await Promise.all([
     fetchWithTimeout(baseUrl + '?languageCode=ko', {
@@ -1299,7 +1311,7 @@ async function googlePlaceDetails(placeId) {
     koreanReviewStats = { count: korean.length, avgRating: Math.round((sum / korean.length) * 10) / 10 };
   }
 
-  const photoNames = (data.photos || []).slice(0, 10).map(ph => ph.name);
+  const photoNames = (data.photos || []).slice(0, 30).map(ph => ph.name);
 
   return {
     reviews: allReviews,
@@ -1309,7 +1321,7 @@ async function googlePlaceDetails(placeId) {
     phone: data.nationalPhoneNumber || data.internationalPhoneNumber,
     openingHoursToday: extractTodayHours(data.currentOpeningHours?.weekdayDescriptions),
     priceLevel: mapPriceLevel(data.priceLevel),
-    priceRange: data.priceRange,
+    priceRange: mapPriceRange(data.priceRange),
     paymentInfo: mapPaymentInfo(data.paymentOptions),
   };
 }
@@ -1323,7 +1335,7 @@ async function googleNearbyStations(lat, lng, radius) {
       'https://places.googleapis.com/v1/places:searchNearby',
       {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-Goog-Api-Key': key, 'X-Goog-FieldMask': 'places.id,places.displayName,places.location' },
+        headers: { 'Content-Type': 'application/json', 'X-Goog-Api-Key': key, 'X-Goog-FieldMask': 'places.id,places.displayName,places.location', 'X-Ios-Bundle-Identifier': 'com.salgi.spotfinder' },
         body: JSON.stringify({
           maxResultCount: 20,
           locationRestriction: { circle: { center: { latitude: lat, longitude: lng }, radius: Math.max(500, Math.min(radius || 2000, 5000)) } },
@@ -1457,9 +1469,9 @@ async function searchPlaces() {
       places = places.map(p => ({ ...p, category: state.category }));
     }
 
-    // Enrich with details (top 20)
+    // Enrich with details (top 40)
     if (places.length > 0) {
-      const enrichCount = Math.min(places.length, 20);
+      const enrichCount = Math.min(places.length, 40);
       const detailJobs = places.slice(0, enrichCount).map(async p => {
         try {
           const d = await googlePlaceDetails(p.id);
@@ -1488,8 +1500,8 @@ async function searchPlaces() {
     places = applyFilters(places, state.filters);
     places = applySort(places, state.sortMode);
 
-    // Inject nearest stations
-    if (places.length > 0 && state.coord) {
+    // Inject nearest stations (center of results, not GPS-dependent)
+    if (places.length > 0) {
       try {
         const centerLat = places.reduce((s, p) => s + p.lat, 0) / places.length;
         const centerLng = places.reduce((s, p) => s + p.lng, 0) / places.length;
@@ -1625,10 +1637,41 @@ function html(strings, ...values) {
   return strings.reduce((acc, str, i) => acc + str + (values[i] ?? ''), '');
 }
 
+const NEGATIVE_KEYWORDS = ['최악','맛없어요','별로','불결','불친절','실망','위생불량','바퀴','머리카락'];
+
+function analyzeReviews(reviews) {
+  const found = new Set();
+  let negativeCount = 0;
+  for (const r of reviews) {
+    if (!r?.text) continue;
+    for (const kw of NEGATIVE_KEYWORDS) {
+      if (r.text.includes(kw)) { found.add(kw); negativeCount++; }
+    }
+  }
+  const uniqueHits = found.size;
+  return { negativeCount, negativeKeywordsFound: Array.from(found), filtered: uniqueHits >= 3, warn: uniqueHits >= 1 && uniqueHits < 3 };
+}
+
+function formatPriceRange(pr) {
+  if (!pr) return null;
+  const cc = pr.startPrice?.currencyCode || pr.endPrice?.currencyCode || '';
+  const s = pr.startPrice?.units;
+  const e = pr.endPrice?.units;
+  if (s && e) return cc + ' ' + Number(s).toLocaleString() + '~' + Number(e).toLocaleString();
+  if (s) return cc + ' ' + Number(s).toLocaleString() + '~';
+  if (e) return '~' + cc + ' ' + Number(e).toLocaleString();
+  return null;
+}
+
+function buildBookingUrl(name) {
+  return 'https://www.booking.com/searchresults.html?ss=' + encodeURIComponent(name);
+}
+
 function renderPlaceCard(place, showFav) {
   const trust = calcTrustScore(place);
   const isFav = isFavorite(place.id);
   const photoSrc = place.photoUrl ? photoUrl(place.photoUrl, 800) : '';
+  const isHotel = place.category === 'lodging' || (state.category === 'lodging');
 
   let metaBadges = '';
   if (place.koreanReviewStats && place.koreanReviewStats.count > 0) {
@@ -1680,10 +1723,12 @@ function renderPlaceCard(place, showFav) {
         <div class="place-address">${place.address}</div>
         ${place.openingHoursToday ? `<span class="place-hours">\uD83D\uDD50 오늘 ${place.openingHoursToday}</span>` : ''}
         ${reviewPreview ? `<div class="place-review-preview">"${reviewPreview}"</div>` : ''}
+        ${isHotel && place.priceRange ? `<div class="meta-row"><span style="background:#E0F2FE;padding:2px 8px;border-radius:var(--radius-sm);font-size:11px;color:#0369A1;font-weight:700">${formatPriceRange(place.priceRange)}</span></div>` : ''}
         <div class="place-actions">
           <button class="action-btn" onclick="openGoogleMaps(${place.lat}, ${place.lng}, '${place.name.replace(/'/g, "\\'")}')">길찾기</button>
           ${place.phone ? `<button class="action-btn" onclick="window.open('tel:${place.phone}')">전화</button>` : ''}
           <button class="action-btn" onclick="showDetail('${place.id}')">상세</button>
+          ${isHotel ? `<button class="action-btn" style="background:#E0F2FE;color:#0369A1" onclick="window.open('${buildBookingUrl(place.name)}')">예약</button>` : ''}
         </div>
       </div>
     </div>
@@ -1704,6 +1749,7 @@ async function showDetail(placeId) {
   state.detailPlace = place;
   state.detailData = null;
   state.detailLoading = true;
+  state.detailReviewFilter = 'all';
   render();
 
   try {
@@ -1732,7 +1778,8 @@ function renderDetailModal() {
 
   const photos = (p.photoUrls || (p.photoUrl ? [p.photoUrl] : []));
   const reviews = (state.detailData?.reviews || p.reviews || []);
-  const trust = calcTrustScore(p);
+  const trustDetail = calcTrustScoreDetail(p);
+  const trust = trustDetail.score;
   const isFav = isFavorite(p.id);
 
   let photosHtml = '';
@@ -1744,12 +1791,26 @@ function renderDetailModal() {
 
   let reviewsHtml = '';
   if (reviews.length > 0) {
-    reviewsHtml = '<div class="detail-section-title">리뷰 (' + reviews.length + ')</div>' +
-      reviews.slice(0, 10).map(r => {
-        const rating = r.rating ? '<span class="detail-review-rating">' + '\u2605'.repeat(r.rating) + '</span> ' : '';
-        const author = r.author ? '<div class="detail-review-author">' + r.author + (r.languageCode === 'ko' ? ' \uD83C\uDDF0\uD83C\uDDF7' : '') + '</div>' : '';
-        return `<div class="detail-review">${rating}<span class="detail-review-text">${r.text}</span>${author}</div>`;
-      }).join('');
+    const reviewFilterBtns = `
+      <div style="display:flex;gap:6px;margin-bottom:8px">
+        <button class="modal-chip ${!state.detailReviewFilter || state.detailReviewFilter === 'all' ? 'active' : ''}" style="padding:4px 10px;font-size:11px" onclick="state.detailReviewFilter='all';render()">전체</button>
+        <button class="modal-chip ${state.detailReviewFilter === 'ko' ? 'active' : ''}" style="padding:4px 10px;font-size:11px" onclick="state.detailReviewFilter='ko';render()">\uD83C\uDDF0\uD83C\uDDF7 한국어</button>
+        <button class="modal-chip ${state.detailReviewFilter === 'local' ? 'active' : ''}" style="padding:4px 10px;font-size:11px" onclick="state.detailReviewFilter='local';render()">\uD83C\uDF0F 현지인</button>
+      </div>
+    `;
+    const rf = state.detailReviewFilter || 'all';
+    const filteredReviews = rf === 'ko' ? reviews.filter(r => r.languageCode === 'ko')
+      : rf === 'local' ? reviews.filter(r => r.languageCode !== 'ko')
+      : reviews;
+    reviewsHtml = '<div class="detail-section-title">리뷰 (' + reviews.length + ')</div>' + reviewFilterBtns +
+      (filteredReviews.length === 0
+        ? '<div style="font-size:13px;color:var(--text-mute)">' + (rf === 'ko' ? '한국어 리뷰가 없습니다.' : rf === 'local' ? '현지인 리뷰가 없습니다.' : '리뷰가 없습니다.') + '</div>'
+        : filteredReviews.slice(0, 10).map(r => {
+          const rating = r.rating ? '<span class="detail-review-rating">' + '\u2605'.repeat(r.rating) + '</span> ' : '';
+          const author = r.author ? '<div class="detail-review-author">' + r.author + (r.languageCode === 'ko' ? ' \uD83C\uDDF0\uD83C\uDDF7' : '') + '</div>' : '';
+          return `<div class="detail-review">${rating}<span class="detail-review-text">${r.text}</span>${author}</div>`;
+        }).join('')
+      );
   }
 
   return html`
@@ -1772,13 +1833,29 @@ function renderDetailModal() {
           </div>
           ${p.rating > 0 ? `<div class="detail-info-row"><span class="rating-text"><span class="star-text">\u2605</span> ${p.rating.toFixed(1)} <span class="review-count">(${p.reviewCount}명)</span></span></div>` : ''}
           ${p.koreanReviewStats && p.koreanReviewStats.count > 0 ? `<div class="detail-info-row"><span class="kor-badge">\uD83C\uDDF0\uD83C\uDDF7 한국인 ${p.koreanReviewStats.count}명 평균 \u2605${p.koreanReviewStats.avgRating.toFixed(1)}</span></div>` : ''}
+          ${p.rating > 0 ? `<div style="margin:8px 0;padding:10px;border-radius:var(--radius-md);background:var(--primary-light);font-size:12px">
+            <div style="font-weight:800;color:var(--primary);margin-bottom:4px">신뢰도 ${trust}점 산정 근거</div>
+            <div style="color:var(--text)">평점 ${p.rating.toFixed(1)}/5.0 \u2192 <b>${trustDetail.ratingPart}점</b> <span style="color:var(--text-mute)">(가중치 60%)</span></div>
+            <div style="color:var(--text)">리뷰 ${p.reviewCount.toLocaleString()}개 \u2192 <b>${trustDetail.reviewPart}점</b> <span style="color:var(--text-mute)">(가중치 40%)</span></div>
+          </div>` : ''}
           ${p.nearestStation ? `<div class="detail-info-row"><span class="station-badge">\uD83D\uDE87 ${p.nearestStation.name} 도보 ${p.nearestStation.walkMinutes}분</span></div>` : ''}
           ${p.paymentInfo ? `<div class="detail-info-row">${p.paymentInfo.cashOnly ? '<span class="cash-badge">\uD83D\uDCB5 현금만</span>' : p.paymentInfo.acceptsCard ? '<span class="card-badge">\uD83D\uDCB3 카드결제 가능</span>' : ''}${p.paymentInfo.acceptsNfc ? ' <span class="card-badge">NFC</span>' : ''}</div>` : ''}
+          ${p.priceRange && formatPriceRange(p.priceRange) ? `<div class="detail-info-row"><span style="background:#E0F2FE;padding:2px 8px;border-radius:var(--radius-sm);font-size:11px;color:#0369A1;font-weight:700">${formatPriceRange(p.priceRange)}</span></div>` : ''}
           <div class="place-address" style="margin:8px 0">${p.address}</div>
           ${p.openingHoursToday ? `<span class="place-hours">\uD83D\uDD50 오늘 ${p.openingHoursToday}</span>` : ''}
           ${p.phone ? `<div style="margin-top:8px;font-size:13px;color:var(--text)">전화: <a href="tel:${p.phone}" style="color:var(--primary)">${p.phone}</a></div>` : ''}
           ${p.distance !== undefined ? `<div style="margin-top:8px;font-size:13px;color:var(--text-sub)">${formatDistance(p.distance)} (도보 ${walkMinutes(p.distance)}분)</div>` : ''}
           ${state.detailLoading ? '<div style="text-align:center;padding:20px"><div class="spinner"></div></div>' : ''}
+          ${(() => {
+            const neg = analyzeReviews(reviews);
+            if (!neg.warn && !neg.filtered) return '';
+            return '<div class="detail-section-title">부정 리뷰 분석</div>' +
+              '<div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:6px">' +
+              neg.negativeKeywordsFound.map(kw => '<span style="background:#FDEAEA;padding:2px 8px;border-radius:var(--radius-pill);font-size:11px;color:var(--danger);font-weight:700">' + kw + '</span>').join('') +
+              '</div>' +
+              '<div style="font-size:11px;color:var(--text-mute)">총 ' + neg.negativeCount + '회 등장 \xB7 리뷰 ' + reviews.length + '개 분석' +
+              (neg.filtered ? ' \xB7 부정 키워드 3종 이상 \u2014 주의 필요' : '') + '</div>';
+          })()}
           ${reviewsHtml}
           <div class="detail-actions">
             <button class="action-btn" onclick="openGoogleMaps(${p.lat}, ${p.lng}, '${p.name.replace(/'/g, "\\'")}')">길찾기</button>
@@ -1845,6 +1922,10 @@ function toggleFilterChip(key) {
 
 function setSortMode(mode) {
   state.sortMode = mode;
+  // Re-sort existing results instead of re-searching (matches RN behavior)
+  if (state.places.length > 0) {
+    state.places = applySort([...state.places], mode);
+  }
   state.modal = null;
   render();
 }
@@ -1922,7 +2003,7 @@ function renderSearchScreen() {
       </div>
     </div>
     <div class="category-row">
-      ${CATEGORIES.map(c => `<button class="cat-chip ${state.category === c.key ? 'active' : ''}" onclick="setCategory('${c.key}')">${c.label}</button>`).join('')}
+      ${CATEGORIES.map(c => `<button class="cat-chip ${state.category === c.key ? 'active' : ''}" onclick="setCategory('${c.key}')">${c.icon} ${c.label}</button>`).join('')}
     </div>
     <div class="control-row">
       <button class="ctrl-chip ${state.filters.length > 0 ? 'has-value' : ''}" onclick="state.modal='filter';render()">${filterLabel}</button>
