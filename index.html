@@ -1,0 +1,2212 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="SpotFinder">
+<meta name="theme-color" content="#4A90D9">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>SpotFinder</title>
+<style>
+/* ================================================================
+   CSS Reset & Variables
+   ================================================================ */
+:root {
+  --primary: #4A90D9;
+  --primary-light: #EBF3FC;
+  --primary-dark: #3570B0;
+  --bg: #F8FAFC;
+  --card: #FFFFFF;
+  --text: #1A1A1A;
+  --text-sub: #6B7280;
+  --text-mute: #9CA3AF;
+  --border: #E5E7EB;
+  --star: #F59E0B;
+  --success: #10B981;
+  --danger: #EF4444;
+  --warning: #F59E0B;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-pill: 20px;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --tab-height: 56px;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { height: 100%; overflow: hidden; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  -webkit-font-smoothing: antialiased;
+}
+
+#app {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  padding-top: var(--safe-top);
+  padding-bottom: var(--safe-bottom);
+}
+
+/* ================================================================
+   Utility
+   ================================================================ */
+.hidden { display: none !important; }
+.flex-row { display: flex; align-items: center; }
+.flex-1 { flex: 1; }
+.gap-4 { gap: 4px; }
+.gap-6 { gap: 6px; }
+.gap-8 { gap: 8px; }
+.gap-12 { gap: 12px; }
+
+/* ================================================================
+   Header
+   ================================================================ */
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 16px;
+  background: var(--card);
+  border-bottom: 1px solid var(--border);
+  min-height: 48px;
+  flex-shrink: 0;
+}
+.header-title {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--text);
+}
+.header-btn {
+  background: none;
+  border: none;
+  font-size: 14px;
+  color: var(--primary);
+  font-weight: 600;
+  cursor: pointer;
+  padding: 6px 10px;
+  border-radius: var(--radius-sm);
+}
+.header-btn:active { opacity: 0.6; }
+
+/* ================================================================
+   Tab Bar
+   ================================================================ */
+.tab-bar {
+  display: flex;
+  background: var(--card);
+  border-top: 1px solid var(--border);
+  height: var(--tab-height);
+  flex-shrink: 0;
+}
+.tab-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  cursor: pointer;
+  border: none;
+  background: none;
+  color: var(--text-mute);
+  font-size: 10px;
+  font-weight: 600;
+  transition: color 0.15s;
+}
+.tab-item.active { color: var(--primary); }
+.tab-icon { font-size: 22px; }
+
+/* ================================================================
+   Screen Container
+   ================================================================ */
+.screen {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* ================================================================
+   Search Screen
+   ================================================================ */
+.search-header {
+  background: var(--card);
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.coord-display {
+  font-size: 11px;
+  color: var(--text-mute);
+  margin-bottom: 8px;
+}
+.coord-display button {
+  background: none;
+  border: none;
+  color: var(--primary);
+  font-weight: 700;
+  font-size: 11px;
+  cursor: pointer;
+  margin-left: 4px;
+}
+.search-input-row {
+  display: flex;
+  gap: 8px;
+}
+.search-input {
+  flex: 1;
+  height: 40px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 0 12px;
+  font-size: 14px;
+  background: var(--bg);
+  outline: none;
+  color: var(--text);
+}
+.search-input:focus { border-color: var(--primary); }
+.search-btn {
+  height: 40px;
+  padding: 0 16px;
+  background: var(--primary);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-md);
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.search-btn:active { background: var(--primary-dark); }
+.search-btn:disabled {
+  background: var(--text-mute);
+  cursor: not-allowed;
+}
+
+/* Category Chips */
+.category-row {
+  display: flex;
+  overflow-x: auto;
+  gap: 6px;
+  padding: 10px 16px;
+  background: var(--card);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.category-row::-webkit-scrollbar { display: none; }
+.cat-chip {
+  flex-shrink: 0;
+  padding: 6px 14px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--border);
+  background: var(--bg);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  color: var(--text);
+  white-space: nowrap;
+}
+.cat-chip.active {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #fff;
+}
+
+/* Control Row (filter/sort/radius chips) */
+.control-row {
+  display: flex;
+  gap: 6px;
+  padding: 8px 16px;
+  background: var(--card);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+  flex-wrap: wrap;
+}
+.ctrl-chip {
+  padding: 5px 12px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--border);
+  background: var(--bg);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  color: var(--text-sub);
+  white-space: nowrap;
+}
+.ctrl-chip.has-value {
+  background: var(--primary-light);
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+/* Results */
+.results-container {
+  padding: 12px 16px 100px;
+}
+.results-status {
+  font-size: 12px;
+  color: var(--text-sub);
+  margin-bottom: 10px;
+  font-weight: 600;
+}
+.loading-msg {
+  text-align: center;
+  padding: 40px 16px;
+  color: var(--text-mute);
+  font-size: 14px;
+}
+.error-msg {
+  text-align: center;
+  padding: 24px 16px;
+  color: var(--danger);
+  font-size: 13px;
+  background: #FEF2F2;
+  border-radius: var(--radius-md);
+  margin: 12px 16px;
+}
+.empty-state {
+  text-align: center;
+  padding: 60px 16px;
+  color: var(--text-mute);
+}
+.empty-icon { font-size: 48px; margin-bottom: 12px; }
+.empty-text { font-size: 15px; font-weight: 600; color: var(--text); }
+.empty-sub { font-size: 13px; color: var(--text-mute); margin-top: 4px; }
+
+/* ================================================================
+   Place Card
+   ================================================================ */
+.place-card {
+  background: var(--card);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+  margin-bottom: 12px;
+  overflow: hidden;
+}
+.place-photo {
+  width: 100%;
+  height: 160px;
+  object-fit: cover;
+  background: var(--border);
+  display: block;
+}
+.place-photo-placeholder {
+  width: 100%;
+  height: 80px;
+  background: linear-gradient(135deg, var(--primary-light), var(--bg));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32px;
+}
+.place-body { padding: 12px 14px; }
+.place-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.place-name {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text);
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.place-distance-badge {
+  background: #EEF4FF;
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  font-size: 11px;
+  color: #3B82F6;
+  font-weight: 800;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.place-category-badge {
+  font-size: 11px;
+  color: var(--primary);
+  font-weight: 600;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.place-fav-btn {
+  background: none;
+  border: none;
+  font-size: 20px;
+  cursor: pointer;
+  padding: 2px;
+  flex-shrink: 0;
+  line-height: 1;
+}
+.meta-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+  flex-wrap: wrap;
+}
+.star-text { color: var(--star); }
+.rating-text { font-size: 13px; font-weight: 600; color: var(--text); }
+.review-count { color: var(--text-sub); font-weight: 400; font-size: 12px; }
+.trust-chip {
+  background: var(--primary-light);
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  font-size: 11px;
+  color: var(--primary);
+  font-weight: 700;
+}
+.price-chip { font-size: 11px; color: var(--success); font-weight: 700; }
+.open-badge {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+}
+.open-on { background: #E8F8EE; color: var(--success); }
+.open-off { background: #FDEAEA; color: var(--danger); }
+.kor-badge {
+  font-size: 11px; color: #3B82F6; font-weight: 700;
+  background: #EEF4FF; padding: 2px 6px; border-radius: var(--radius-sm);
+}
+.station-badge {
+  font-size: 11px; color: var(--text); font-weight: 700;
+  background: #F1F3F5; padding: 2px 6px; border-radius: var(--radius-sm);
+}
+.cash-badge {
+  font-size: 11px; color: #B45309; font-weight: 700;
+  background: #FEF3C7; padding: 2px 6px; border-radius: var(--radius-sm);
+}
+.card-badge {
+  font-size: 11px; color: var(--success); font-weight: 700;
+  background: #E8F8EE; padding: 2px 6px; border-radius: var(--radius-sm);
+}
+.place-address {
+  font-size: 13px;
+  color: var(--text-sub);
+  margin-top: 6px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.place-hours {
+  font-size: 11px; color: var(--text); font-weight: 600;
+  margin-top: 6px; background: #F5F5F5;
+  padding: 3px 8px; border-radius: var(--radius-sm);
+  display: inline-block;
+}
+.place-review-preview {
+  font-size: 11px; color: var(--text-sub); font-style: italic;
+  margin-top: 6px; line-height: 1.5;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.place-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+}
+.action-btn {
+  flex: 1;
+  padding: 8px;
+  border-radius: var(--radius-md);
+  background: #F0F4FF;
+  border: none;
+  font-size: 13px;
+  color: #3B82F6;
+  font-weight: 700;
+  cursor: pointer;
+  text-align: center;
+}
+.action-btn:active { opacity: 0.7; }
+
+/* ================================================================
+   Filter / Sort / Radius Modal
+   ================================================================ */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.4);
+  z-index: 100;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+.modal-sheet {
+  background: var(--bg);
+  border-top-left-radius: 20px;
+  border-top-right-radius: 20px;
+  width: 100%;
+  max-height: 70vh;
+  overflow-y: auto;
+  padding-bottom: calc(16px + var(--safe-bottom));
+}
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px 10px;
+  border-bottom: 1px solid var(--border);
+}
+.modal-title { font-size: 16px; font-weight: 700; color: var(--text); }
+.modal-reset {
+  font-size: 13px;
+  color: var(--text-sub);
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+.modal-close {
+  font-size: 20px;
+  color: var(--text-mute);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+}
+.modal-body { padding: 16px 20px; }
+.modal-chip-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.modal-chip {
+  padding: 8px 16px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--border);
+  background: var(--bg);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  color: var(--text);
+}
+.modal-chip.active {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #fff;
+}
+.radius-grid {
+  display: flex;
+  gap: 8px;
+}
+.radius-btn {
+  flex: 1;
+  padding: 12px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  background: var(--bg);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: center;
+  color: var(--text);
+}
+.radius-btn.active {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #fff;
+}
+
+/* ================================================================
+   Favorites Screen
+   ================================================================ */
+.fav-empty {
+  text-align: center;
+  padding: 80px 16px;
+}
+.fav-count {
+  font-size: 13px;
+  color: var(--text-sub);
+  margin-bottom: 10px;
+  font-weight: 600;
+  padding: 0 16px;
+  padding-top: 12px;
+}
+.route-help {
+  font-size: 12px;
+  color: var(--primary);
+  background: var(--primary-light);
+  padding: 10px;
+  border-radius: var(--radius-md);
+  margin: 12px 16px;
+  font-weight: 600;
+}
+.route-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px;
+  margin: 0 16px 6px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg);
+  cursor: pointer;
+}
+.route-row.selected {
+  border-color: var(--primary);
+  background: var(--primary-light);
+}
+.route-check {
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  border: 2px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  color: #fff;
+  font-weight: 800;
+  flex-shrink: 0;
+}
+.route-row.selected .route-check {
+  border-color: var(--primary);
+  background: var(--primary);
+}
+.route-row-name { font-size: 13px; font-weight: 700; color: var(--text); }
+.route-row-addr { font-size: 11px; color: var(--text-mute); margin-top: 2px; }
+.route-bottom-bar {
+  position: sticky;
+  bottom: 0;
+  padding: 12px 16px;
+  background: var(--card);
+  border-top: 1px solid var(--border);
+}
+.route-open-btn {
+  width: 100%;
+  padding: 14px;
+  background: var(--primary);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-md);
+  font-size: 15px;
+  font-weight: 800;
+  cursor: pointer;
+}
+.route-open-btn:active { background: var(--primary-dark); }
+.route-stats {
+  font-size: 12px;
+  color: var(--text-sub);
+  font-weight: 600;
+  padding: 0 16px;
+  margin-top: 12px;
+}
+
+/* ================================================================
+   Settings Screen
+   ================================================================ */
+.settings-container { padding: 16px; }
+.setting-section {
+  background: var(--card);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+  padding: 16px;
+  margin-bottom: 12px;
+}
+.setting-label {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 8px;
+}
+.setting-desc {
+  font-size: 12px;
+  color: var(--text-sub);
+  margin-bottom: 10px;
+  line-height: 1.4;
+}
+.setting-input {
+  width: 100%;
+  height: 40px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 0 12px;
+  font-size: 14px;
+  background: var(--bg);
+  outline: none;
+  color: var(--text);
+}
+.setting-input:focus { border-color: var(--primary); }
+.setting-btn {
+  width: 100%;
+  padding: 10px;
+  background: var(--primary);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-md);
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  margin-top: 8px;
+}
+.setting-btn:active { background: var(--primary-dark); }
+.setting-btn.danger {
+  background: #FEF2F2;
+  color: var(--danger);
+}
+.setting-btn.danger:active { background: #FEE2E2; }
+.setting-saved {
+  font-size: 12px;
+  color: var(--success);
+  font-weight: 600;
+  margin-top: 6px;
+}
+.setting-status {
+  font-size: 12px;
+  color: var(--text-mute);
+  margin-top: 6px;
+}
+.setting-toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.toggle-switch {
+  position: relative;
+  width: 44px;
+  height: 24px;
+  background: var(--border);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: background 0.2s;
+  flex-shrink: 0;
+}
+.toggle-switch.on { background: var(--primary); }
+.toggle-switch::after {
+  content: '';
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  background: #fff;
+  border-radius: 50%;
+  top: 2px;
+  left: 2px;
+  transition: transform 0.2s;
+}
+.toggle-switch.on::after { transform: translateX(20px); }
+
+/* ================================================================
+   Spinner
+   ================================================================ */
+@keyframes spin { to { transform: rotate(360deg); } }
+.spinner {
+  width: 24px;
+  height: 24px;
+  border: 3px solid var(--border);
+  border-top-color: var(--primary);
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+  margin: 0 auto;
+}
+
+/* ================================================================
+   Detail Modal
+   ================================================================ */
+.detail-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.5);
+  z-index: 200;
+  display: flex;
+  align-items: flex-end;
+}
+.detail-sheet {
+  background: var(--bg);
+  border-top-left-radius: 20px;
+  border-top-right-radius: 20px;
+  width: 100%;
+  max-height: 85vh;
+  overflow-y: auto;
+  padding-bottom: calc(20px + var(--safe-bottom));
+}
+.detail-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px 10px;
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  background: var(--bg);
+  z-index: 1;
+}
+.detail-body { padding: 16px 20px; }
+.detail-photos {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  margin-bottom: 16px;
+  scrollbar-width: none;
+}
+.detail-photos::-webkit-scrollbar { display: none; }
+.detail-photo {
+  width: 200px;
+  height: 150px;
+  border-radius: var(--radius-md);
+  object-fit: cover;
+  flex-shrink: 0;
+}
+.detail-info-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+}
+.detail-section-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+  margin: 16px 0 8px;
+}
+.detail-review {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 10px;
+  margin-bottom: 8px;
+}
+.detail-review-text {
+  font-size: 13px;
+  color: var(--text);
+  line-height: 1.5;
+}
+.detail-review-author {
+  font-size: 11px;
+  color: var(--text-mute);
+  margin-top: 4px;
+}
+.detail-review-rating {
+  font-size: 11px;
+  color: var(--star);
+  font-weight: 600;
+}
+.detail-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 16px;
+}
+</style>
+</head>
+<body>
+
+<div id="app">
+  <!-- Populated by JS -->
+</div>
+
+<script>
+/* ================================================================
+   SpotFinder PWA — All-in-one JavaScript
+   ================================================================ */
+
+// ================================================================
+// Constants
+// ================================================================
+
+const CATEGORIES = [
+  { key: 'all', label: '전체', icon: '' },
+  { key: 'food', label: '식당', icon: '' },
+  { key: 'cafe', label: '카페', icon: '' },
+  { key: 'attraction', label: '관광', icon: '' },
+  { key: 'museum', label: '박물관', icon: '' },
+  { key: 'park', label: '공원', icon: '' },
+  { key: 'shopping', label: '쇼핑', icon: '' },
+  { key: 'conv', label: '편의점', icon: '' },
+  { key: 'lodging', label: '숙소', icon: '' },
+  { key: 'transit', label: '교통', icon: '' },
+  { key: 'money', label: '환전', icon: '' },
+  { key: 'health', label: '약국', icon: '' },
+  { key: 'wellness', label: '마사지', icon: '' },
+  { key: 'family', label: '가족', icon: '' },
+];
+
+const FILTER_OPTIONS = [
+  { key: 'openNow', label: '영업중', icon: '\uD83D\uDFE2' },
+  { key: 'openLate', label: '심야영업', icon: '\uD83C\uDF19' },
+  { key: 'nightMarket', label: '야시장', icon: '\uD83C\uDF03' },
+  { key: 'manyKorean', label: '한국인 많이 방문', icon: '\uD83C\uDDF0\uD83C\uDDF7' },
+  { key: 'fewKorean', label: '현지인 맛집', icon: '\uD83C\uDF0F' },
+  { key: 'topTrust', label: '핫플', icon: '\uD83D\uDD25' },
+  { key: 'cardOk', label: '카드OK', icon: '\uD83D\uDCB3' },
+  { key: 'kidFriendly', label: '어린이 친화', icon: '\uD83D\uDC76' },
+  { key: 'priceLow', label: '저가', icon: '\uD83D\uDCB0' },
+];
+
+const SORT_OPTIONS = [
+  { value: 'smart', label: '추천' },
+  { value: 'distance', label: '거리순' },
+  { value: 'rating', label: '평점순' },
+  { value: 'popular', label: '인기순' },
+  { value: 'trust', label: '신뢰순' },
+];
+
+const RADIUS_OPTIONS = [
+  { value: 500, label: '500m' },
+  { value: 1000, label: '1km' },
+  { value: 3000, label: '3km' },
+  { value: 5000, label: '5km' },
+  { value: 10000, label: '10km' },
+];
+
+const MUTUAL_EXCLUSION = { manyKorean: 'fewKorean', fewKorean: 'manyKorean' };
+
+// Category -> Google Places (New) types
+const CATEGORY_TYPES = {
+  all: [
+    'restaurant','tourist_attraction','cafe','shopping_mall',
+    'bakery','museum','bar','park','convenience_store','store',
+    'spa','meal_takeaway','ice_cream_shop','market','dessert_shop','night_club',
+  ],
+  food: ['restaurant','meal_takeaway','meal_delivery','food_court'],
+  cafe: ['cafe','coffee_shop','bakery','dessert_shop','ice_cream_shop','tea_house'],
+  attraction: ['tourist_attraction','historical_landmark','observation_deck','cultural_landmark','monument','plaza'],
+  museum: ['museum','art_gallery','performing_arts_theater'],
+  park: ['park','botanical_garden','national_park','garden','beach'],
+  shopping: ['shopping_mall','department_store','market','supermarket','clothing_store','cosmetics_store','electronics_store','gift_shop','book_store','shoe_store','jewelry_store'],
+  conv: ['convenience_store','supermarket','grocery_store'],
+  lodging: ['hotel','lodging','resort_hotel','bed_and_breakfast','guest_house','hostel','inn','motel','extended_stay_hotel'],
+  transit: ['subway_station','train_station','bus_station','transit_station','airport','taxi_stand','ferry_terminal','light_rail_station'],
+  money: ['atm','bank'],
+  health: ['pharmacy','drugstore'],
+  wellness: ['spa'],
+  family: ['amusement_park','water_park','zoo','aquarium','amusement_center','playground'],
+};
+
+const NOISE_TYPES = new Set([
+  'subway_station','train_station','transit_station','bus_station',
+  'taxi_stand','transit_depot','light_rail_station','airport',
+  'parking','gas_station','electric_vehicle_charging_station',
+  'atm','bank','insurance_agency',
+  'post_office','government_office','courthouse','embassy',
+  'school','primary_school','secondary_school','university','library',
+  'hospital','doctor','dentist','physiotherapist',
+  'police','fire_station','cemetery','funeral_home',
+  'real_estate_agency','lawyer','accounting',
+  'car_dealer','car_rental','car_repair','car_wash',
+]);
+
+const SKIP_NOISE_FILTER = new Set(['transit','money','health','wellness']);
+
+const CATEGORY_KO = {
+  food:'식당', cafe:'카페', attraction:'관광명소', museum:'박물관',
+  park:'공원', shopping:'쇼핑', conv:'편의점', lodging:'호텔',
+  transit:'지하철역', money:'환전', health:'약국', wellness:'스파', family:'놀이공원'
+};
+
+const NIGHT_MARKET_RE = /夜市|食市|屋台|縁日|ナイトマーケット|chợ đêm|ตลาดกลางคืน|ตลาดนัด|pasar malam|hawker|야시장|night ?market|night ?bazaar/i;
+const LATE_NIGHT_RE = /bar|night_club|nightclub|24h|24시|심야|深夜|late|居酒屋|izakaya/i;
+
+const FIELD_MASK = [
+  'places.id','places.displayName','places.formattedAddress','places.shortFormattedAddress',
+  'places.location','places.rating','places.userRatingCount','places.photos',
+  'places.types','places.primaryType',
+  'places.currentOpeningHours.openNow','places.currentOpeningHours.weekdayDescriptions',
+  'places.nationalPhoneNumber','places.internationalPhoneNumber',
+  'places.priceLevel','places.priceRange','places.paymentOptions',
+].join(',');
+
+const DETAIL_FIELD_MASK = [
+  'id','displayName','formattedAddress','location','rating','userRatingCount',
+  'photos','types','primaryType','currentOpeningHours.openNow',
+  'currentOpeningHours.weekdayDescriptions','nationalPhoneNumber',
+  'internationalPhoneNumber','priceLevel','priceRange','paymentOptions','reviews',
+].join(',');
+
+// ================================================================
+// State
+// ================================================================
+
+const state = {
+  tab: 'search', // search | favorites | settings
+  query: '',
+  category: 'all',
+  filters: [],
+  sortMode: 'smart',
+  radius: 1000,
+  coord: null,
+  useGps: true,
+  places: [],
+  loading: false,
+  error: null,
+  favorites: JSON.parse(localStorage.getItem('sf_favorites') || '[]'),
+  modal: null, // 'filter' | 'sort' | 'radius' | null
+  detailPlace: null,
+  detailData: null,
+  detailLoading: false,
+  // favorites route mode
+  routeMode: false,
+  routeSelected: new Set(),
+};
+
+function getApiKey() {
+  return localStorage.getItem('sf_api_key') || '';
+}
+
+// ================================================================
+// Utility Functions
+// ================================================================
+
+function haversine(lat1, lng1, lat2, lng2) {
+  const R = 6371000;
+  const toRad = d => d * Math.PI / 180;
+  const dLat = toRad(lat2 - lat1);
+  const dLng = toRad(lng2 - lng1);
+  const a = Math.sin(dLat/2)**2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng/2)**2;
+  return Math.round(2 * R * Math.asin(Math.sqrt(a)));
+}
+
+function calcTrustScore(place) {
+  const ratingPart = (place.rating / 5) * 100 * 0.6;
+  const reviewNorm = Math.min(100, Math.log10(Math.max(1, place.reviewCount) + 1) * 33.3);
+  const reviewPart = reviewNorm * 0.4;
+  return Math.round(ratingPart + reviewPart);
+}
+
+function formatDistance(m) {
+  return m < 1000 ? m + 'm' : (m / 1000).toFixed(1) + 'km';
+}
+
+function walkMinutes(m) {
+  return Math.max(1, Math.round(m * 1.3 / 80));
+}
+
+function priceSymbol(level) {
+  if (level === 0) return 'FREE';
+  return '$'.repeat(level);
+}
+
+function mapPriceLevel(level) {
+  switch (level) {
+    case 'PRICE_LEVEL_FREE': return 0;
+    case 'PRICE_LEVEL_INEXPENSIVE': return 1;
+    case 'PRICE_LEVEL_MODERATE': return 2;
+    case 'PRICE_LEVEL_EXPENSIVE': return 3;
+    case 'PRICE_LEVEL_VERY_EXPENSIVE': return 4;
+    default: return undefined;
+  }
+}
+
+function mapPaymentInfo(opt) {
+  if (!opt) return undefined;
+  const card = opt.acceptsCreditCards === true || opt.acceptsDebitCards === true;
+  const cashOnly = opt.acceptsCashOnly === true;
+  const nfc = opt.acceptsNfc === true;
+  if (!card && !cashOnly && !nfc) return undefined;
+  return { acceptsCard: card || undefined, cashOnly: cashOnly || undefined, acceptsNfc: nfc || undefined };
+}
+
+function extractTodayHours(descs) {
+  if (!descs || descs.length < 7) return undefined;
+  const jsDay = new Date().getDay();
+  const idx = jsDay === 0 ? 6 : jsDay - 1;
+  const line = descs[idx];
+  if (!line) return undefined;
+  const colon = line.indexOf(':');
+  return colon >= 0 ? line.slice(colon + 1).trim() : line;
+}
+
+function mapCategory(types) {
+  if (!types) types = [];
+  if (types.includes('hotel') || types.includes('lodging')) return 'lodging';
+  if (types.includes('cafe') || types.includes('coffee_shop') || types.includes('tea_house')) return 'cafe';
+  if (types.includes('convenience_store') || types.includes('grocery_store') || types.includes('supermarket')) return 'conv';
+  if (types.includes('restaurant') || types.includes('food') || types.includes('food_court')) return 'food';
+  if (types.includes('tourist_attraction') || types.includes('historical_landmark')) return 'attraction';
+  if (types.includes('museum') || types.includes('art_gallery')) return 'museum';
+  if (types.includes('park') || types.includes('garden') || types.includes('botanical_garden')) return 'park';
+  if (types.includes('shopping_mall') || types.includes('department_store') || types.includes('store') || types.includes('electronics_store') || types.includes('clothing_store') || types.includes('market')) return 'shopping';
+  if (types.includes('subway_station') || types.includes('train_station')) return 'transit';
+  if (types.includes('atm') || types.includes('bank')) return 'money';
+  if (types.includes('pharmacy') || types.includes('drugstore')) return 'health';
+  if (types.includes('spa') || types.includes('beauty_salon')) return 'wellness';
+  if (types.includes('amusement_park') || types.includes('zoo') || types.includes('aquarium')) return 'family';
+  return 'all';
+}
+
+function categoryLabel(cat) {
+  const found = CATEGORIES.find(c => c.key === cat);
+  return found ? found.label : '기타';
+}
+
+function circleToBounds(lat, lng, radiusM) {
+  const latDelta = radiusM / 111320;
+  const lngDelta = radiusM / (111320 * Math.cos(lat * Math.PI / 180));
+  return {
+    low: { latitude: lat - latDelta, longitude: lng - lngDelta },
+    high: { latitude: lat + latDelta, longitude: lng + lngDelta },
+  };
+}
+
+function chunkTypes(types, size) {
+  const chunks = [];
+  for (let i = 0; i < types.length; i += size) {
+    chunks.push(types.slice(i, i + size));
+  }
+  return chunks;
+}
+
+function photoUrl(photoName, maxWidth) {
+  const key = getApiKey();
+  if (!photoName || !key) return '';
+  return `https://places.googleapis.com/v1/${photoName}/media?maxWidthPx=${maxWidth || 400}&key=${key}`;
+}
+
+// ================================================================
+// Google Places API (New)
+// ================================================================
+
+async function fetchWithTimeout(url, options, timeoutMs) {
+  timeoutMs = timeoutMs || 15000;
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, { ...options, signal: controller.signal });
+  } finally {
+    clearTimeout(id);
+  }
+}
+
+function mapNewPlace(p) {
+  const lat = p.location?.latitude ?? 0;
+  const lng = p.location?.longitude ?? 0;
+  const photoNames = (p.photos || []).slice(0, 10).map(ph => ph.name);
+  return {
+    id: 'google:' + p.id,
+    name: p.displayName?.text || '이름 없음',
+    category: mapCategory(p.types),
+    address: p.formattedAddress || p.shortFormattedAddress || '',
+    phone: p.nationalPhoneNumber || p.internationalPhoneNumber,
+    lat, lng,
+    rating: p.rating || 0,
+    reviewCount: p.userRatingCount || 0,
+    openNow: p.currentOpeningHours?.openNow,
+    openingHoursToday: extractTodayHours(p.currentOpeningHours?.weekdayDescriptions),
+    photoUrl: photoNames[0],
+    photoUrls: photoNames,
+    priceLevel: mapPriceLevel(p.priceLevel),
+    priceRange: p.priceRange,
+    paymentInfo: mapPaymentInfo(p.paymentOptions),
+    types: [...(p.primaryType ? [p.primaryType] : []), ...(p.types || [])],
+  };
+}
+
+async function googleSearch(filter) {
+  const key = getApiKey();
+  if (!key) throw new Error('API Key가 설정되지 않았습니다. 설정 탭에서 입력해주세요.');
+
+  const hasQuery = filter.query.trim().length > 0;
+  const headers = {
+    'Content-Type': 'application/json',
+    'X-Goog-Api-Key': key,
+  };
+
+  if (hasQuery) {
+    const catKw = filter.category !== 'all' ? CATEGORY_KO[filter.category] : undefined;
+    const rawQuery = filter.query.trim();
+    const textQuery = catKw && !rawQuery.includes(catKw) ? rawQuery + ' ' + catKw : rawQuery;
+
+    const textBody = {
+      textQuery,
+      languageCode: 'ko',
+      regionCode: 'KR',
+      maxResultCount: 20,
+    };
+    if (filter.coord) {
+      textBody.locationRestriction = {
+        rectangle: circleToBounds(filter.coord.lat, filter.coord.lng, filter.radius),
+      };
+    }
+    if (filter.filters.includes('openNow')) {
+      textBody.openNow = true;
+    }
+
+    const textUrl = 'https://places.googleapis.com/v1/places:searchText';
+    const textHeaders = { ...headers, 'X-Goog-FieldMask': FIELD_MASK + ',nextPageToken' };
+
+    const firstRes = await fetchWithTimeout(textUrl, {
+      method: 'POST', headers: textHeaders, body: JSON.stringify(textBody),
+    });
+    const firstData = await firstRes.json();
+    if (!firstRes.ok || firstData.error) {
+      throw new Error('Google searchText ' + firstRes.status + ': ' + (firstData.error?.message || 'unknown'));
+    }
+
+    let allRaw = [...(firstData.places || [])];
+    let pageToken = firstData.nextPageToken;
+    let page = 1;
+    while (pageToken && page < 3) {
+      const pageBody = { ...textBody, pageToken };
+      try {
+        const pageRes = await fetchWithTimeout(textUrl, {
+          method: 'POST', headers: textHeaders, body: JSON.stringify(pageBody),
+        });
+        if (!pageRes.ok) break;
+        const pageData = await pageRes.json();
+        allRaw.push(...(pageData.places || []));
+        pageToken = pageData.nextPageToken;
+      } catch { break; }
+      page++;
+    }
+
+    const seen = new Set();
+    const deduped = [];
+    for (const p of allRaw) {
+      if (!seen.has(p.id)) { seen.add(p.id); deduped.push(p); }
+    }
+    return { places: deduped.map(mapNewPlace), nextPageToken: pageToken };
+
+  } else if (filter.coord) {
+    const types = CATEGORY_TYPES[filter.category];
+    const chunkSize = types && types.length <= 3 ? 1 : 2;
+    const chunks = types && types.length >= 2 ? chunkTypes(types, chunkSize) : null;
+
+    if (chunks && chunks.length > 1) {
+      const batchResults = await Promise.all(
+        chunks.map(chunk => {
+          const batchBody = {
+            maxResultCount: 20,
+            locationRestriction: {
+              circle: {
+                center: { latitude: filter.coord.lat, longitude: filter.coord.lng },
+                radius: filter.radius,
+              },
+            },
+            languageCode: 'ko',
+            regionCode: 'KR',
+            includedTypes: chunk,
+          };
+          return fetchWithTimeout(
+            'https://places.googleapis.com/v1/places:searchNearby',
+            {
+              method: 'POST',
+              headers: { ...headers, 'X-Goog-FieldMask': FIELD_MASK },
+              body: JSON.stringify(batchBody),
+            }
+          ).then(r => r.json()).catch(() => ({ places: [] }));
+        })
+      );
+
+      const seen = new Set();
+      const merged = [];
+      for (const res of batchResults) {
+        for (const p of (res.places || [])) {
+          if (!seen.has(p.id)) { seen.add(p.id); merged.push(p); }
+        }
+      }
+      return { places: merged.map(mapNewPlace), nextPageToken: undefined };
+    }
+
+    // single call
+    const body = {
+      maxResultCount: 20,
+      locationRestriction: {
+        circle: {
+          center: { latitude: filter.coord.lat, longitude: filter.coord.lng },
+          radius: filter.radius,
+        },
+      },
+      languageCode: 'ko',
+      regionCode: 'KR',
+    };
+    if (types) body.includedTypes = types;
+    if (!SKIP_NOISE_FILTER.has(filter.category)) {
+      body.excludedTypes = Array.from(NOISE_TYPES);
+    }
+    const res = await fetchWithTimeout(
+      'https://places.googleapis.com/v1/places:searchNearby',
+      { method: 'POST', headers: { ...headers, 'X-Goog-FieldMask': FIELD_MASK }, body: JSON.stringify(body) }
+    );
+    const data = await res.json();
+    if (!res.ok || data.error) {
+      throw new Error('Google Places ' + res.status + ': ' + (data.error?.message || 'unknown'));
+    }
+    return { places: (data.places || []).map(mapNewPlace), nextPageToken: data.nextPageToken };
+
+  } else {
+    throw new Error('동네명을 입력하거나 GPS를 활성화하세요.');
+  }
+}
+
+// Place Details
+async function googlePlaceDetails(placeId) {
+  const key = getApiKey();
+  if (!key) return null;
+  const id = placeId.startsWith('google:') ? placeId.slice(7) : placeId;
+  const baseUrl = 'https://places.googleapis.com/v1/places/' + encodeURIComponent(id);
+  const headers = { 'X-Goog-Api-Key': key };
+
+  const [koRes, localRes] = await Promise.all([
+    fetchWithTimeout(baseUrl + '?languageCode=ko', {
+      method: 'GET', headers: { ...headers, 'X-Goog-FieldMask': DETAIL_FIELD_MASK },
+    }),
+    fetchWithTimeout(baseUrl, {
+      method: 'GET', headers: { ...headers, 'X-Goog-FieldMask': 'reviews' },
+    }).catch(() => null),
+  ]);
+
+  const data = await koRes.json();
+  if (!koRes.ok || data.error) return null;
+
+  function parseReviews(raw) {
+    return (raw || []).map(r => ({
+      text: r.text?.text || r.originalText?.text || '',
+      rating: r.rating,
+      author: r.authorAttribution?.displayName,
+      languageCode: r.originalText?.languageCode,
+    })).filter(r => r.text.length > 0);
+  }
+
+  const koReviews = parseReviews(data.reviews);
+  let allReviews = koReviews;
+  if (localRes && localRes.ok) {
+    try {
+      const localData = await localRes.json();
+      const localReviews = parseReviews(localData.reviews);
+      const seenAuthors = new Set(koReviews.map(r => r.author));
+      const newLocal = localReviews.filter(r => !seenAuthors.has(r.author));
+      allReviews = [...koReviews, ...newLocal];
+    } catch {}
+  }
+
+  const korean = allReviews.filter(r => r.languageCode === 'ko' && r.rating !== undefined);
+  let koreanReviewStats;
+  if (korean.length > 0) {
+    const sum = korean.reduce((a, r) => a + (r.rating || 0), 0);
+    koreanReviewStats = { count: korean.length, avgRating: Math.round((sum / korean.length) * 10) / 10 };
+  }
+
+  const photoNames = (data.photos || []).slice(0, 10).map(ph => ph.name);
+
+  return {
+    reviews: allReviews,
+    koreanReviewStats,
+    photoUrl: photoNames[0],
+    photoUrls: photoNames,
+    phone: data.nationalPhoneNumber || data.internationalPhoneNumber,
+    openingHoursToday: extractTodayHours(data.currentOpeningHours?.weekdayDescriptions),
+    priceLevel: mapPriceLevel(data.priceLevel),
+    priceRange: data.priceRange,
+    paymentInfo: mapPaymentInfo(data.paymentOptions),
+  };
+}
+
+// Nearby stations
+async function googleNearbyStations(lat, lng, radius) {
+  const key = getApiKey();
+  if (!key) return [];
+  try {
+    const res = await fetchWithTimeout(
+      'https://places.googleapis.com/v1/places:searchNearby',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Goog-Api-Key': key, 'X-Goog-FieldMask': 'places.id,places.displayName,places.location' },
+        body: JSON.stringify({
+          maxResultCount: 20,
+          locationRestriction: { circle: { center: { latitude: lat, longitude: lng }, radius: Math.max(500, Math.min(radius || 2000, 5000)) } },
+          languageCode: 'ko',
+          includedTypes: ['subway_station','train_station','transit_station','light_rail_station'],
+        }),
+      }
+    );
+    if (!res.ok) return [];
+    const data = await res.json();
+    return (data.places || []).filter(p => p.location).map(p => ({
+      id: p.id,
+      name: p.displayName?.text || '역',
+      lat: p.location.latitude,
+      lng: p.location.longitude,
+    }));
+  } catch { return []; }
+}
+
+// ================================================================
+// Search Logic
+// ================================================================
+
+function applyFilters(places, filters) {
+  if (filters.length === 0) return places;
+  return places.filter(p => {
+    for (const f of filters) {
+      switch (f) {
+        case 'openNow': if (p.openNow !== true) return false; break;
+        case 'openLate':
+          if (p.openNow !== true) return false;
+          if (!LATE_NIGHT_RE.test(p.name) && !LATE_NIGHT_RE.test((p.types||[]).join(' '))) return false;
+          break;
+        case 'nightMarket':
+          if (!NIGHT_MARKET_RE.test(p.name) && !NIGHT_MARKET_RE.test(p.address)) return false;
+          break;
+        case 'manyKorean': if ((p.koreanReviewStats?.count || 0) < 3) return false; break;
+        case 'fewKorean': if ((p.koreanReviewStats?.count || 0) >= 3) return false; break;
+        case 'topTrust': if (calcTrustScore(p) < 70) return false; break;
+        case 'cardOk': if (!p.paymentInfo?.acceptsCard || p.paymentInfo?.cashOnly) return false; break;
+        case 'kidFriendly': if ((p.familyMatchScore || 0) < 60) return false; break;
+        case 'priceLow': if (p.priceLevel !== undefined && p.priceLevel > 1) return false; break;
+      }
+    }
+    return true;
+  });
+}
+
+function applySort(places, mode) {
+  const sorted = [...places];
+  switch (mode) {
+    case 'distance':
+      sorted.sort((a, b) => (a.distance ?? Infinity) - (b.distance ?? Infinity));
+      break;
+    case 'rating':
+      sorted.sort((a, b) => { if (b.rating !== a.rating) return b.rating - a.rating; return b.reviewCount - a.reviewCount; });
+      break;
+    case 'popular':
+      sorted.sort((a, b) => { if (b.reviewCount !== a.reviewCount) return b.reviewCount - a.reviewCount; return b.rating - a.rating; });
+      break;
+    case 'trust':
+      sorted.sort((a, b) => calcTrustScore(b) - calcTrustScore(a));
+      break;
+    case 'smart':
+    default:
+      sorted.sort((a, b) => { const ts = calcTrustScore(b) - calcTrustScore(a); if (ts !== 0) return ts; return (a.distance ?? Infinity) - (b.distance ?? Infinity); });
+      break;
+  }
+  return sorted;
+}
+
+function injectNearestStation(places, stations) {
+  if (stations.length === 0) return places;
+  return places.map(p => {
+    let best = null, bestDist = Infinity;
+    for (const s of stations) {
+      const d = haversine(p.lat, p.lng, s.lat, s.lng);
+      if (d < bestDist) { bestDist = d; best = s; }
+    }
+    if (!best) return p;
+    const walkDist = bestDist * 1.3;
+    return { ...p, nearestStation: { name: best.name, distanceM: Math.round(walkDist), walkMinutes: Math.max(1, Math.round(walkDist / 80)) } };
+  });
+}
+
+async function searchPlaces() {
+  state.loading = true;
+  state.error = null;
+  state.places = [];
+  render();
+
+  try {
+    const filter = {
+      query: state.query,
+      category: state.category,
+      radius: state.radius,
+      filters: state.filters,
+      sortMode: state.sortMode,
+      coord: state.coord,
+    };
+
+    const result = await googleSearch(filter);
+    let places = result.places;
+
+    // Distance calculation
+    if (state.coord) {
+      places = places.map(p => ({ ...p, distance: haversine(state.coord.lat, state.coord.lng, p.lat, p.lng) }));
+      places = places.filter(p => (p.distance ?? Infinity) <= state.radius * 1.1);
+    }
+
+    // Noise filter
+    if (!SKIP_NOISE_FILTER.has(state.category)) {
+      places = places.filter(p => {
+        const types = p.types || [];
+        if (types.length === 0) return true;
+        return !types.every(t => NOISE_TYPES.has(t));
+      });
+    }
+
+    // Category post-processing
+    if (state.category !== 'all') {
+      const targetTypes = new Set(CATEGORY_TYPES[state.category] || []);
+      if (targetTypes.size > 0) {
+        const matched = places.filter(p => (p.types || []).some(t => targetTypes.has(t)));
+        if (matched.length > 0) places = matched;
+      }
+      places = places.map(p => ({ ...p, category: state.category }));
+    }
+
+    // Enrich with details (top 20)
+    if (places.length > 0) {
+      const enrichCount = Math.min(places.length, 20);
+      const detailJobs = places.slice(0, enrichCount).map(async p => {
+        try {
+          const d = await googlePlaceDetails(p.id);
+          return { id: p.id, data: d };
+        } catch { return null; }
+      });
+      const enrichResults = await Promise.all(detailJobs);
+      const byId = new Map();
+      for (const r of enrichResults) if (r && r.data) byId.set(r.id, r.data);
+      places = places.map(p => {
+        const d = byId.get(p.id);
+        if (!d) return p;
+        return {
+          ...p,
+          koreanReviewStats: d.koreanReviewStats || p.koreanReviewStats,
+          paymentInfo: d.paymentInfo || p.paymentInfo,
+          priceRange: d.priceRange || p.priceRange,
+          reviews: d.reviews || p.reviews,
+          openingHoursToday: d.openingHoursToday || p.openingHoursToday,
+          phone: d.phone || p.phone,
+        };
+      });
+    }
+
+    // Apply filters + sort
+    places = applyFilters(places, state.filters);
+    places = applySort(places, state.sortMode);
+
+    // Inject nearest stations
+    if (places.length > 0 && state.coord) {
+      try {
+        const centerLat = places.reduce((s, p) => s + p.lat, 0) / places.length;
+        const centerLng = places.reduce((s, p) => s + p.lng, 0) / places.length;
+        const stations = await googleNearbyStations(centerLat, centerLng, Math.max(state.radius * 2, 2000));
+        places = injectNearestStation(places, stations);
+      } catch {}
+    }
+
+    state.places = places;
+  } catch (e) {
+    state.error = e.message || '검색 실패';
+  }
+  state.loading = false;
+  render();
+}
+
+// ================================================================
+// GPS
+// ================================================================
+
+function fetchLocation() {
+  return new Promise((resolve, reject) => {
+    if (!navigator.geolocation) {
+      reject(new Error('GPS를 지원하지 않는 브라우저입니다'));
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      pos => {
+        state.coord = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+        resolve(state.coord);
+      },
+      err => reject(new Error('위치를 가져올 수 없습니다: ' + err.message)),
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  });
+}
+
+// ================================================================
+// Favorites
+// ================================================================
+
+function saveFavorites() {
+  localStorage.setItem('sf_favorites', JSON.stringify(state.favorites));
+}
+
+function toggleFavorite(place) {
+  const idx = state.favorites.findIndex(f => f.id === place.id);
+  if (idx >= 0) {
+    state.favorites.splice(idx, 1);
+  } else {
+    state.favorites.push(place);
+  }
+  saveFavorites();
+  render();
+}
+
+function isFavorite(placeId) {
+  return state.favorites.some(f => f.id === placeId);
+}
+
+// ================================================================
+// TSP
+// ================================================================
+
+function tspTotalDistance(start, ordered) {
+  let prev = start, sum = 0;
+  for (const p of ordered) { sum += haversine(prev.lat, prev.lng, p.lat, p.lng); prev = p; }
+  return sum;
+}
+
+function tspPermutations(arr) {
+  if (arr.length <= 1) return [arr];
+  const result = [];
+  for (let i = 0; i < arr.length; i++) {
+    const rest = [...arr.slice(0, i), ...arr.slice(i + 1)];
+    for (const perm of tspPermutations(rest)) result.push([arr[i], ...perm]);
+  }
+  return result;
+}
+
+function optimizeRoute(start, waypoints) {
+  if (waypoints.length <= 1) return waypoints;
+  if (waypoints.length <= 8) {
+    let best = waypoints, bestDist = Infinity;
+    for (const perm of tspPermutations(waypoints)) {
+      const d = tspTotalDistance(start, perm);
+      if (d < bestDist) { bestDist = d; best = perm; }
+    }
+    return best;
+  }
+  // Nearest Neighbor
+  const remaining = [...waypoints];
+  const ordered = [];
+  let cur = start;
+  while (remaining.length > 0) {
+    let bestIdx = 0, bestDist = Infinity;
+    for (let i = 0; i < remaining.length; i++) {
+      const d = haversine(cur.lat, cur.lng, remaining[i].lat, remaining[i].lng);
+      if (d < bestDist) { bestDist = d; bestIdx = i; }
+    }
+    const next = remaining.splice(bestIdx, 1)[0];
+    ordered.push(next);
+    cur = next;
+  }
+  return ordered;
+}
+
+function buildGoogleMapsRouteUrl(start, ordered, travelmode) {
+  if (ordered.length === 0) return null;
+  const last = ordered[ordered.length - 1];
+  const middle = ordered.slice(0, -1);
+  let url = 'https://www.google.com/maps/dir/?api=1&travelmode=' + (travelmode || 'walking');
+  url += '&origin=' + encodeURIComponent(start.lat + ',' + start.lng);
+  url += '&destination=' + encodeURIComponent(last.lat + ',' + last.lng);
+  if (middle.length > 0) {
+    const wp = middle.map(p => p.lat + ',' + p.lng).join('|');
+    url += '&waypoints=' + encodeURIComponent(wp);
+  }
+  return url;
+}
+
+function estimateRouteStats(start, ordered) {
+  const m = tspTotalDistance(start, ordered);
+  const walkM = m * 1.3;
+  return { totalKm: Math.round((m / 1000) * 10) / 10, walkMinutes: Math.round(walkM / 80) };
+}
+
+// ================================================================
+// Render Functions
+// ================================================================
+
+function html(strings, ...values) {
+  return strings.reduce((acc, str, i) => acc + str + (values[i] ?? ''), '');
+}
+
+function renderPlaceCard(place, showFav) {
+  const trust = calcTrustScore(place);
+  const isFav = isFavorite(place.id);
+  const photoSrc = place.photoUrl ? photoUrl(place.photoUrl, 800) : '';
+
+  let metaBadges = '';
+  if (place.koreanReviewStats && place.koreanReviewStats.count > 0) {
+    metaBadges += `<span class="kor-badge">\uD83C\uDDF0\uD83C\uDDF7 한국인 ${place.koreanReviewStats.count}명 \u2605${place.koreanReviewStats.avgRating.toFixed(1)}</span>`;
+  }
+  if (place.nearestStation) {
+    metaBadges += `<span class="station-badge">\uD83D\uDE87 ${place.nearestStation.name} ${place.nearestStation.walkMinutes}분</span>`;
+  }
+  if (place.paymentInfo?.cashOnly) {
+    metaBadges += '<span class="cash-badge">\uD83D\uDCB5 현금만</span>';
+  } else if (place.paymentInfo?.acceptsCard) {
+    metaBadges += '<span class="card-badge">\uD83D\uDCB3 카드OK</span>';
+  }
+
+  // Best review preview
+  let reviewPreview = '';
+  if (place.reviews && place.reviews.length > 0) {
+    const korean = place.reviews.find(r => r.languageCode === 'ko' && r.text.length > 10);
+    const top = korean || place.reviews.find(r => r.text.length > 10);
+    if (top) {
+      const text = top.text.replace(/\s+/g, ' ').trim();
+      reviewPreview = text.length > 80 ? text.slice(0, 80) + '\u2026' : text;
+    }
+  }
+
+  return html`
+    <div class="place-card" data-id="${place.id}">
+      ${photoSrc
+        ? `<img class="place-photo" src="${photoSrc}" alt="${place.name}" loading="lazy" onerror="this.style.display='none'">`
+        : `<div class="place-photo-placeholder">${categoryLabel(place.category).charAt(0)}</div>`
+      }
+      <div class="place-body">
+        <div class="place-head">
+          <span class="place-name">${place.name}</span>
+          ${place.distance !== undefined ? `<span class="place-distance-badge">${formatDistance(place.distance)} \u00B7 ${walkMinutes(place.distance)}분</span>` : ''}
+          <span class="place-category-badge">${categoryLabel(place.category)}</span>
+          ${showFav !== false ? `<button class="place-fav-btn" onclick="toggleFavorite(findPlace('${place.id}'))">${isFav ? '\u2605' : '\u2606'}</button>` : ''}
+        </div>
+        <div class="meta-row">
+          ${place.rating > 0
+            ? `<span class="rating-text"><span class="star-text">\u2605</span> ${place.rating.toFixed(1)} <span class="review-count">(${place.reviewCount})</span></span>`
+            : '<span style="font-size:12px;color:var(--text-mute)">평점 정보없음</span>'
+          }
+          <span class="trust-chip">신뢰 ${trust}</span>
+          ${place.priceLevel !== undefined ? `<span class="price-chip">${priceSymbol(place.priceLevel)}</span>` : ''}
+          ${place.openNow !== undefined ? `<span class="open-badge ${place.openNow ? 'open-on' : 'open-off'}">${place.openNow ? '영업중' : '영업종료'}</span>` : ''}
+        </div>
+        ${metaBadges ? `<div class="meta-row">${metaBadges}</div>` : ''}
+        <div class="place-address">${place.address}</div>
+        ${place.openingHoursToday ? `<span class="place-hours">\uD83D\uDD50 오늘 ${place.openingHoursToday}</span>` : ''}
+        ${reviewPreview ? `<div class="place-review-preview">"${reviewPreview}"</div>` : ''}
+        <div class="place-actions">
+          <button class="action-btn" onclick="openGoogleMaps(${place.lat}, ${place.lng}, '${place.name.replace(/'/g, "\\'")}')">길찾기</button>
+          ${place.phone ? `<button class="action-btn" onclick="window.open('tel:${place.phone}')">전화</button>` : ''}
+          <button class="action-btn" onclick="showDetail('${place.id}')">상세</button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function findPlace(id) {
+  return state.places.find(p => p.id === id) || state.favorites.find(p => p.id === id);
+}
+
+function openGoogleMaps(lat, lng, name) {
+  window.open(`https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}&destination_place_id=&travelmode=walking`);
+}
+
+async function showDetail(placeId) {
+  const place = findPlace(placeId);
+  if (!place) return;
+  state.detailPlace = place;
+  state.detailData = null;
+  state.detailLoading = true;
+  render();
+
+  try {
+    const detail = await googlePlaceDetails(placeId);
+    if (detail) {
+      state.detailData = detail;
+      // Merge detail data into place
+      if (detail.reviews) state.detailPlace.reviews = detail.reviews;
+      if (detail.koreanReviewStats) state.detailPlace.koreanReviewStats = detail.koreanReviewStats;
+      if (detail.photoUrls) state.detailPlace.photoUrls = detail.photoUrls;
+    }
+  } catch {}
+  state.detailLoading = false;
+  render();
+}
+
+function closeDetail() {
+  state.detailPlace = null;
+  state.detailData = null;
+  render();
+}
+
+function renderDetailModal() {
+  const p = state.detailPlace;
+  if (!p) return '';
+
+  const photos = (p.photoUrls || (p.photoUrl ? [p.photoUrl] : []));
+  const reviews = (state.detailData?.reviews || p.reviews || []);
+  const trust = calcTrustScore(p);
+  const isFav = isFavorite(p.id);
+
+  let photosHtml = '';
+  if (photos.length > 0) {
+    photosHtml = '<div class="detail-photos">' +
+      photos.slice(0, 8).map(ph => `<img class="detail-photo" src="${photoUrl(ph, 600)}" loading="lazy" onerror="this.style.display='none'">`).join('') +
+      '</div>';
+  }
+
+  let reviewsHtml = '';
+  if (reviews.length > 0) {
+    reviewsHtml = '<div class="detail-section-title">리뷰 (' + reviews.length + ')</div>' +
+      reviews.slice(0, 10).map(r => {
+        const rating = r.rating ? '<span class="detail-review-rating">' + '\u2605'.repeat(r.rating) + '</span> ' : '';
+        const author = r.author ? '<div class="detail-review-author">' + r.author + (r.languageCode === 'ko' ? ' \uD83C\uDDF0\uD83C\uDDF7' : '') + '</div>' : '';
+        return `<div class="detail-review">${rating}<span class="detail-review-text">${r.text}</span>${author}</div>`;
+      }).join('');
+  }
+
+  return html`
+    <div class="detail-overlay" onclick="if(event.target===this)closeDetail()">
+      <div class="detail-sheet">
+        <div class="detail-header">
+          <span style="font-size:16px;font-weight:700">${p.name}</span>
+          <div class="flex-row gap-8">
+            <button class="place-fav-btn" onclick="toggleFavorite(findPlace('${p.id}'))">${isFav ? '\u2605' : '\u2606'}</button>
+            <button class="modal-close" onclick="closeDetail()">\u2715</button>
+          </div>
+        </div>
+        <div class="detail-body">
+          ${photosHtml}
+          <div class="detail-info-row">
+            <span class="place-category-badge">${categoryLabel(p.category)}</span>
+            <span class="trust-chip">신뢰 ${trust}</span>
+            ${p.openNow !== undefined ? `<span class="open-badge ${p.openNow ? 'open-on' : 'open-off'}">${p.openNow ? '영업중' : '영업종료'}</span>` : ''}
+            ${p.priceLevel !== undefined ? `<span class="price-chip">${priceSymbol(p.priceLevel)}</span>` : ''}
+          </div>
+          ${p.rating > 0 ? `<div class="detail-info-row"><span class="rating-text"><span class="star-text">\u2605</span> ${p.rating.toFixed(1)} <span class="review-count">(${p.reviewCount}명)</span></span></div>` : ''}
+          ${p.koreanReviewStats && p.koreanReviewStats.count > 0 ? `<div class="detail-info-row"><span class="kor-badge">\uD83C\uDDF0\uD83C\uDDF7 한국인 ${p.koreanReviewStats.count}명 평균 \u2605${p.koreanReviewStats.avgRating.toFixed(1)}</span></div>` : ''}
+          ${p.nearestStation ? `<div class="detail-info-row"><span class="station-badge">\uD83D\uDE87 ${p.nearestStation.name} 도보 ${p.nearestStation.walkMinutes}분</span></div>` : ''}
+          ${p.paymentInfo ? `<div class="detail-info-row">${p.paymentInfo.cashOnly ? '<span class="cash-badge">\uD83D\uDCB5 현금만</span>' : p.paymentInfo.acceptsCard ? '<span class="card-badge">\uD83D\uDCB3 카드결제 가능</span>' : ''}${p.paymentInfo.acceptsNfc ? ' <span class="card-badge">NFC</span>' : ''}</div>` : ''}
+          <div class="place-address" style="margin:8px 0">${p.address}</div>
+          ${p.openingHoursToday ? `<span class="place-hours">\uD83D\uDD50 오늘 ${p.openingHoursToday}</span>` : ''}
+          ${p.phone ? `<div style="margin-top:8px;font-size:13px;color:var(--text)">전화: <a href="tel:${p.phone}" style="color:var(--primary)">${p.phone}</a></div>` : ''}
+          ${p.distance !== undefined ? `<div style="margin-top:8px;font-size:13px;color:var(--text-sub)">${formatDistance(p.distance)} (도보 ${walkMinutes(p.distance)}분)</div>` : ''}
+          ${state.detailLoading ? '<div style="text-align:center;padding:20px"><div class="spinner"></div></div>' : ''}
+          ${reviewsHtml}
+          <div class="detail-actions">
+            <button class="action-btn" onclick="openGoogleMaps(${p.lat}, ${p.lng}, '${p.name.replace(/'/g, "\\'")}')">길찾기</button>
+            ${p.phone ? `<button class="action-btn" onclick="window.open('tel:${p.phone}')">전화</button>` : ''}
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function renderModal() {
+  if (!state.modal) return '';
+  let title = '', bodyContent = '';
+
+  if (state.modal === 'filter') {
+    title = '필터';
+    bodyContent = '<div class="modal-chip-grid">' +
+      FILTER_OPTIONS.map(opt => {
+        const active = state.filters.includes(opt.key);
+        return `<button class="modal-chip ${active ? 'active' : ''}" onclick="toggleFilterChip('${opt.key}')">${opt.icon} ${opt.label}</button>`;
+      }).join('') + '</div>';
+  } else if (state.modal === 'sort') {
+    title = '정렬';
+    bodyContent = '<div class="modal-chip-grid">' +
+      SORT_OPTIONS.map(opt => {
+        const active = state.sortMode === opt.value;
+        return `<button class="modal-chip ${active ? 'active' : ''}" onclick="setSortMode('${opt.value}')">${opt.label}</button>`;
+      }).join('') + '</div>';
+  } else if (state.modal === 'radius') {
+    title = '검색 반경';
+    bodyContent = '<div class="radius-grid">' +
+      RADIUS_OPTIONS.map(opt => {
+        const active = state.radius === opt.value;
+        return `<button class="radius-btn ${active ? 'active' : ''}" onclick="setRadius(${opt.value})">${opt.label}</button>`;
+      }).join('') + '</div>';
+  }
+
+  return html`
+    <div class="modal-overlay" onclick="if(event.target===this){state.modal=null;render()}">
+      <div class="modal-sheet">
+        <div class="modal-header">
+          <button class="modal-reset" onclick="resetModal()">초기화</button>
+          <span class="modal-title">${title}</span>
+          <button class="modal-close" onclick="state.modal=null;render()">\u2715</button>
+        </div>
+        <div class="modal-body">${bodyContent}</div>
+      </div>
+    </div>
+  `;
+}
+
+function toggleFilterChip(key) {
+  const exclusive = MUTUAL_EXCLUSION[key];
+  if (state.filters.includes(key)) {
+    state.filters = state.filters.filter(f => f !== key);
+  } else {
+    if (exclusive) state.filters = state.filters.filter(f => f !== exclusive);
+    state.filters.push(key);
+  }
+  state.modal = null;
+  render();
+}
+
+function setSortMode(mode) {
+  state.sortMode = mode;
+  state.modal = null;
+  render();
+}
+
+function setRadius(r) {
+  state.radius = r;
+  state.modal = null;
+  render();
+}
+
+function resetModal() {
+  if (state.modal === 'filter') state.filters = [];
+  else if (state.modal === 'sort') state.sortMode = 'smart';
+  else if (state.modal === 'radius') state.radius = 1000;
+  state.modal = null;
+  render();
+}
+
+// ================================================================
+// Screen Renderers
+// ================================================================
+
+function renderSearchScreen() {
+  const coordText = state.coord
+    ? `${state.coord.lat.toFixed(4)}, ${state.coord.lng.toFixed(4)}`
+    : 'GPS 미활성';
+
+  const filterLabel = state.filters.length > 0
+    ? '필터 ' + state.filters.length + '개'
+    : '필터';
+  const sortLabel = SORT_OPTIONS.find(s => s.value === state.sortMode)?.label || '추천';
+  const radiusLabel = RADIUS_OPTIONS.find(r => r.value === state.radius)?.label || '1km';
+
+  let resultsHtml = '';
+  if (state.loading) {
+    resultsHtml = '<div class="loading-msg"><div class="spinner"></div><div style="margin-top:12px">검색 중...</div></div>';
+  } else if (state.error) {
+    resultsHtml = `<div class="error-msg">${state.error}</div>`;
+  } else if (state.places.length > 0) {
+    resultsHtml = `<div class="results-status">${state.places.length}개 장소</div>` +
+      state.places.map(p => renderPlaceCard(p)).join('');
+  } else if (state.places.length === 0 && !state.loading && !state.error) {
+    resultsHtml = `
+      <div class="empty-state">
+        <div class="empty-icon">\uD83D\uDD0D</div>
+        <div class="empty-text">주변 장소를 검색해보세요</div>
+        <div class="empty-sub">GPS를 켜거나 동네명을 입력하세요</div>
+      </div>
+    `;
+  }
+
+  return html`
+    <div class="search-header">
+      <div class="coord-display">
+        ${coordText}
+        <button onclick="refreshGps()">GPS 갱신</button>
+      </div>
+      <div class="search-input-row">
+        <input class="search-input" type="text" placeholder="동네명 또는 키워드"
+          value="${state.query}" oninput="state.query=this.value"
+          onkeydown="if(event.key==='Enter')doSearch()">
+        <button class="search-btn" onclick="doSearch()" ${state.loading ? 'disabled' : ''}>
+          ${state.loading ? '...' : '검색'}
+        </button>
+      </div>
+    </div>
+    <div class="category-row">
+      ${CATEGORIES.map(c => `<button class="cat-chip ${state.category === c.key ? 'active' : ''}" onclick="setCategory('${c.key}')">${c.label}</button>`).join('')}
+    </div>
+    <div class="control-row">
+      <button class="ctrl-chip ${state.filters.length > 0 ? 'has-value' : ''}" onclick="state.modal='filter';render()">${filterLabel}</button>
+      <button class="ctrl-chip ${state.sortMode !== 'smart' ? 'has-value' : ''}" onclick="state.modal='sort';render()">${sortLabel}</button>
+      <button class="ctrl-chip ${state.radius !== 1000 ? 'has-value' : ''}" onclick="state.modal='radius';render()">${radiusLabel}</button>
+    </div>
+    <div class="screen">
+      <div class="results-container">
+        ${resultsHtml}
+      </div>
+    </div>
+  `;
+}
+
+function renderFavoritesScreen() {
+  if (state.routeMode) {
+    const selectedPlaces = state.favorites.filter(p => state.routeSelected.has(p.id));
+    let statsHtml = '';
+    if (state.coord && selectedPlaces.length >= 2) {
+      const ordered = optimizeRoute(state.coord, selectedPlaces);
+      const stats = estimateRouteStats(state.coord, ordered);
+      statsHtml = `<div class="route-stats">${state.routeSelected.size}곳 선택 &middot; 약 ${stats.totalKm}km &middot; 도보 ${stats.walkMinutes}분</div>`;
+    } else {
+      statsHtml = `<div class="route-stats">${state.routeSelected.size}곳 선택됨</div>`;
+    }
+
+    return html`
+      <div class="header">
+        <button class="header-btn" onclick="cancelRouteMode()">취소</button>
+        <span class="header-title">동선 짜기</span>
+        <span style="width:50px"></span>
+      </div>
+      <div class="screen">
+        <div class="route-help">방문할 곳을 모두 선택하세요. 출발은 현재 위치, 순서는 자동 최적화됩니다.</div>
+        ${statsHtml}
+        ${state.favorites.map(p => {
+          const selected = state.routeSelected.has(p.id);
+          return `<div class="route-row ${selected ? 'selected' : ''}" onclick="toggleRouteSelect('${p.id}')">
+            <div class="route-check">${selected ? '\u2713' : ''}</div>
+            <div style="flex:1"><div class="route-row-name">${p.name}</div><div class="route-row-addr">${p.address}</div></div>
+          </div>`;
+        }).join('')}
+        ${state.routeSelected.size >= 2 ? `
+          <div class="route-bottom-bar">
+            <button class="route-open-btn" onclick="openRoute()">Google Maps에서 열기 (${state.routeSelected.size}곳)</button>
+          </div>
+        ` : ''}
+      </div>
+    `;
+  }
+
+  return html`
+    <div class="header">
+      <span style="width:50px"></span>
+      <span class="header-title">즐겨찾기</span>
+      ${state.favorites.length >= 2
+        ? `<button class="header-btn" onclick="startRouteMode()">동선</button>`
+        : '<span style="width:50px"></span>'
+      }
+    </div>
+    <div class="screen">
+      ${state.favorites.length === 0 ? `
+        <div class="fav-empty">
+          <div class="empty-icon">\u2606</div>
+          <div class="empty-text">아직 저장한 곳이 없습니다</div>
+          <div class="empty-sub">검색 결과에서 \u2606 버튼을 눌러 저장하세요</div>
+        </div>
+      ` : `
+        <div class="fav-count">${state.favorites.length}곳 저장됨</div>
+        <div style="padding:0 16px 100px">
+          ${state.favorites.map(p => renderPlaceCard(p)).join('')}
+        </div>
+      `}
+    </div>
+  `;
+}
+
+function renderSettingsScreen() {
+  const apiKey = getApiKey();
+  const hasKey = apiKey.length > 0;
+
+  return html`
+    <div class="header">
+      <span style="width:50px"></span>
+      <span class="header-title">설정</span>
+      <span style="width:50px"></span>
+    </div>
+    <div class="screen">
+      <div class="settings-container">
+        <div class="setting-section">
+          <div class="setting-label">Google API Key</div>
+          <div class="setting-desc">
+            Google Cloud Console에서 Places API (New) 키를 발급하세요.
+            HTTP 리퍼러 제한을 설정하면 안전합니다.
+          </div>
+          <input class="setting-input" type="password" placeholder="API Key 입력"
+            value="${apiKey}" id="apiKeyInput">
+          <button class="setting-btn" onclick="saveApiKey()">저장</button>
+          ${hasKey ? '<div class="setting-saved">API Key 설정됨</div>' : '<div class="setting-status">API Key 미설정</div>'}
+        </div>
+
+        <div class="setting-section">
+          <div class="setting-label">GPS 사용</div>
+          <div class="setting-toggle-row">
+            <span class="setting-desc" style="margin:0">현재 위치 기반 검색</span>
+            <div class="toggle-switch ${state.useGps ? 'on' : ''}" onclick="toggleGps()"></div>
+          </div>
+          ${state.coord ? `<div class="setting-status">현재 위치: ${state.coord.lat.toFixed(4)}, ${state.coord.lng.toFixed(4)}</div>` : ''}
+        </div>
+
+        <div class="setting-section">
+          <div class="setting-label">기본 검색 반경</div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap">
+            ${RADIUS_OPTIONS.map(opt =>
+              `<button class="radius-btn ${state.radius === opt.value ? 'active' : ''}" style="flex:none;padding:8px 16px" onclick="setRadius(${opt.value});render()">${opt.label}</button>`
+            ).join('')}
+          </div>
+        </div>
+
+        <div class="setting-section">
+          <div class="setting-label">캐시 관리</div>
+          <div class="setting-desc">
+            즐겨찾기: ${state.favorites.length}곳
+          </div>
+          <button class="setting-btn danger" onclick="clearCache()">캐시 초기화</button>
+        </div>
+
+        <div class="setting-section">
+          <div class="setting-label">앱 정보</div>
+          <div class="setting-desc">
+            SpotFinder PWA v1.0<br>
+            한국인 해외 여행자를 위한 장소 발견 앱
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+// ================================================================
+// Main Render
+// ================================================================
+
+function render() {
+  let content = '';
+  if (state.tab === 'search') content = renderSearchScreen();
+  else if (state.tab === 'favorites') content = renderFavoritesScreen();
+  else if (state.tab === 'settings') content = renderSettingsScreen();
+
+  const tabBar = html`
+    <div class="tab-bar">
+      <button class="tab-item ${state.tab === 'search' ? 'active' : ''}" onclick="switchTab('search')">
+        <span class="tab-icon">\uD83D\uDD0D</span>
+        <span>검색</span>
+      </button>
+      <button class="tab-item ${state.tab === 'favorites' ? 'active' : ''}" onclick="switchTab('favorites')">
+        <span class="tab-icon">\u2605</span>
+        <span>즐겨찾기</span>
+      </button>
+      <button class="tab-item ${state.tab === 'settings' ? 'active' : ''}" onclick="switchTab('settings')">
+        <span class="tab-icon">\u2699</span>
+        <span>설정</span>
+      </button>
+    </div>
+  `;
+
+  document.getElementById('app').innerHTML = content + tabBar + renderModal() + renderDetailModal();
+}
+
+// ================================================================
+// Actions
+// ================================================================
+
+function switchTab(tab) {
+  if (state.routeMode) cancelRouteMode();
+  state.tab = tab;
+  render();
+}
+
+function setCategory(cat) {
+  state.category = cat;
+  render();
+}
+
+async function doSearch() {
+  if (!getApiKey()) {
+    state.tab = 'settings';
+    render();
+    alert('먼저 Google API Key를 설정해주세요.');
+    return;
+  }
+
+  if (state.useGps && !state.coord) {
+    try { await fetchLocation(); } catch {}
+  }
+
+  if (!state.query.trim() && !state.coord) {
+    state.error = '동네명을 입력하거나 GPS를 활성화하세요.';
+    render();
+    return;
+  }
+
+  await searchPlaces();
+}
+
+async function refreshGps() {
+  try {
+    await fetchLocation();
+    render();
+  } catch (e) {
+    alert(e.message);
+  }
+}
+
+function saveApiKey() {
+  const input = document.getElementById('apiKeyInput');
+  if (input) {
+    localStorage.setItem('sf_api_key', input.value.trim());
+    render();
+  }
+}
+
+function toggleGps() {
+  state.useGps = !state.useGps;
+  if (state.useGps && !state.coord) {
+    fetchLocation().then(() => render()).catch(() => render());
+  }
+  render();
+}
+
+function clearCache() {
+  if (confirm('캐시를 초기화하시겠습니까? 즐겨찾기는 유지됩니다.')) {
+    // Clear search results
+    state.places = [];
+    render();
+  }
+}
+
+// Route mode
+async function startRouteMode() {
+  state.routeMode = true;
+  state.routeSelected = new Set();
+  if (!state.coord) {
+    try { await fetchLocation(); } catch {}
+  }
+  render();
+}
+
+function cancelRouteMode() {
+  state.routeMode = false;
+  state.routeSelected = new Set();
+  render();
+}
+
+function toggleRouteSelect(id) {
+  if (state.routeSelected.has(id)) {
+    state.routeSelected.delete(id);
+  } else {
+    state.routeSelected.add(id);
+  }
+  render();
+}
+
+async function openRoute() {
+  const selectedPlaces = state.favorites.filter(p => state.routeSelected.has(p.id));
+  if (selectedPlaces.length < 2) {
+    alert('최소 2곳을 선택해주세요.');
+    return;
+  }
+  let start = state.coord;
+  if (!start) {
+    try { start = await fetchLocation(); } catch {}
+  }
+  if (!start) {
+    alert('현재 위치를 가져올 수 없습니다. GPS 권한을 확인하세요.');
+    return;
+  }
+  const ordered = optimizeRoute(start, selectedPlaces);
+  const url = buildGoogleMapsRouteUrl(start, ordered, 'walking');
+  if (url) window.open(url);
+}
+
+// ================================================================
+// Init
+// ================================================================
+
+function init() {
+  // Register service worker
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+  }
+
+  // Auto-fetch GPS on startup
+  if (state.useGps) {
+    fetchLocation().then(() => render()).catch(() => {});
+  }
+
+  // Check if API key exists, if not show settings
+  if (!getApiKey()) {
+    state.tab = 'settings';
+  }
+
+  render();
+}
+
+init();
+</script>
+</body>
+</html>
