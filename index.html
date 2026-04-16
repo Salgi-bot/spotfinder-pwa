@@ -1441,13 +1441,10 @@ async function searchPlaces() {
     const result = await googleSearch(filter);
     let places = result.places;
 
-    // Distance calculation
+    // Distance calculation + radius filter (RN 동일: API가 locationRestriction을 완벽히 적용 안 하는 경우 안전장치)
     if (state.coord) {
       places = places.map(p => ({ ...p, distance: haversine(state.coord.lat, state.coord.lng, p.lat, p.lng) }));
-      // 텍스트 검색(동네명)은 거리 필터 미적용 — 동네 자체가 현재 GPS와 멀 수 있음
-      if (!state.query.trim()) {
-        places = places.filter(p => (p.distance ?? Infinity) <= state.radius * 1.1);
-      }
+      places = places.filter(p => (p.distance ?? Infinity) <= state.radius * 1.1);
     }
 
     // Noise filter

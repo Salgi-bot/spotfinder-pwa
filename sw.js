@@ -1,5 +1,5 @@
 // SpotFinder PWA Service Worker — Network First
-const CACHE_NAME = 'spotfinder-v7';
+const CACHE_NAME = 'spotfinder-v8';
 
 self.addEventListener('install', () => self.skipWaiting());
 self.addEventListener('activate', (e) => {
