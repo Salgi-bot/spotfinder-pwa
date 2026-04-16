@@ -1,5 +1,5 @@
 // SpotFinder PWA Service Worker
-const CACHE_NAME = 'spotfinder-v1';
+const CACHE_NAME = 'spotfinder-v2';
 const STATIC_ASSETS = [
   './',
   './index.html',
