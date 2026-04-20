@@ -963,9 +963,8 @@ const state = {
   routeSelected: new Set(),
 };
 
-const DEFAULT_API_KEY = 'AIzaSyB4QmwaC2lgRghcs-broNWhJoRsTzyvdm0';
 function getApiKey() {
-  return localStorage.getItem('sf_api_key') || DEFAULT_API_KEY;
+  return localStorage.getItem('sf_api_key') || '';
 }
 
 // ================================================================
