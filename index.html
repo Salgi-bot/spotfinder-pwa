@@ -141,6 +141,12 @@ body {
   border-bottom: 1px solid var(--border);
   flex-shrink: 0;
 }
+.header-logo {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--primary);
+  letter-spacing: -0.3px;
+}
 .coord-display {
   font-size: 11px;
   color: var(--text-mute);
@@ -1946,9 +1952,7 @@ function resetModal() {
 // ================================================================
 
 function renderSearchScreen() {
-  const coordText = state.coord
-    ? `${state.coord.lat.toFixed(4)}, ${state.coord.lng.toFixed(4)}`
-    : 'GPS 미활성';
+  const coordText = state.coord ? '📍 위치 확인됨' : '📍 위치 미설정';
 
   const filterLabel = state.filters.length > 0
     ? '필터 ' + state.filters.length + '개'
@@ -1985,6 +1989,9 @@ function renderSearchScreen() {
   }
 
   return html`
+    <div class="header">
+      <span class="header-logo">🔍 SpotFinder</span>
+    </div>
     <div class="search-header">
       <div class="coord-display">
         ${coordText}
