@@ -2096,6 +2096,7 @@ function renderSettingsScreen() {
     </div>
     <div class="screen">
       <div class="settings-container">
+        ${!hasKey ? `
         <div class="setting-section">
           <div class="setting-label">Google API Key</div>
           <div class="setting-desc">
@@ -2103,10 +2104,10 @@ function renderSettingsScreen() {
             HTTP 리퍼러 제한을 설정하면 안전합니다.
           </div>
           <input class="setting-input" type="password" placeholder="API Key 입력"
-            value="${apiKey}" id="apiKeyInput">
+            value="" id="apiKeyInput">
           <button class="setting-btn" onclick="saveApiKey()">저장</button>
-          ${hasKey ? '<div class="setting-saved">API Key 설정됨</div>' : '<div class="setting-status">API Key 미설정</div>'}
-        </div>
+          <div class="setting-status">API Key 미설정</div>
+        </div>` : ''}
 
         <div class="setting-section">
           <div class="setting-label">GPS 사용</div>
